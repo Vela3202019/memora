@@ -108,10 +108,13 @@ Return JSON only, no markdown fences:
 
 
 # ---------------------------------------------------------------------------
-# Judge (DeepSeek - a different model family from the extractor)
+# Judge — a DIFFERENT model family from the extractor, to avoid self-preference.
+# Default: DeepSeek (API key). Alternative: the local Claude subscription CLI
+# (`claude -p`), which judges GPT extractions cross-family at no API cost.
 # ---------------------------------------------------------------------------
 
 _judge_client = None
+_judge_backend = None  # set to a ClaudeCLIBackend when --judge claude-subscription
 
 
 def get_judge_client() -> AsyncOpenAI:
@@ -138,11 +141,14 @@ def build_judge_payload(case: dict, extracted: dict) -> str:
 
 
 async def judge_case(case: dict, extracted: dict) -> dict:
+    payload = build_judge_payload(case, extracted)
+    if _judge_backend is not None:
+        return await _judge_backend.complete_json(JUDGE_PROMPT, payload)
     response = await get_judge_client().chat.completions.create(
         model=JUDGE_MODEL,
         messages=[
             {"role": "system", "content": JUDGE_PROMPT},
-            {"role": "user", "content": build_judge_payload(case, extracted)},
+            {"role": "user", "content": payload},
         ],
         response_format={"type": "json_object"},
         temperature=0.0,
@@ -432,7 +438,9 @@ def build_manifest(args, dataset_raw: str, n_cases: int) -> dict:
         "backend": args.backend,
         "prompt_version": args.prompt_version,
         "prompt_sha256": hashlib.sha256(prompt_text.encode()).hexdigest()[:12],
-        "judge": f"deepseek:{JUDGE_MODEL}",
+        "judge": ("claude-subscription"
+                  if args.judge == "claude-subscription"
+                  else f"deepseek:{JUDGE_MODEL}"),
         "extraction_temperature": 0.1,
         "judge_temperature": 0.0,
     }
@@ -482,6 +490,13 @@ async def main() -> None:
         default="openai-compatible",
         help="LLM backend for the extractor (default preserves current behavior)",
     )
+    parser.add_argument(
+        "--judge",
+        choices=["deepseek", "claude-subscription"],
+        default="deepseek",
+        help="Judge backend. 'deepseek' (default) needs DEEPSEEK_API_KEY; "
+             "'claude-subscription' judges via `claude -p` at no API cost.",
+    )
     args = parser.parse_args()
 
     dataset_raw = (EVALS_DIR / "dataset.json").read_text()
@@ -491,7 +506,12 @@ async def main() -> None:
         if not cases:
             raise SystemExit(f"No case with id {args.case!r}")
 
-    get_judge_client()  # fail fast if DEEPSEEK_API_KEY is missing
+    if args.judge == "claude-subscription":
+        from memora.llm.claude_cli import ClaudeCLIBackend
+        global _judge_backend
+        _judge_backend = ClaudeCLIBackend()
+    else:
+        get_judge_client()  # fail fast if DEEPSEEK_API_KEY is missing
     backend = get_backend(LLMConfig(backend=args.backend, model=args.model))
     manifest = build_manifest(args, dataset_raw, len(cases))
     logger.info("Manifest: %s", json.dumps(manifest))

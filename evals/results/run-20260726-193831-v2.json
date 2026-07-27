@@ -1,0 +1,223 @@
+{
+  "manifest": {
+    "timestamp": "2026-07-26T19:38:04",
+    "git_rev": "788f957",
+    "dataset_sha256": "12f973feb8ea",
+    "n_cases": 1,
+    "trials": 1,
+    "extractor_model": "gpt-5.2",
+    "backend": "openai-compatible",
+    "prompt_version": "v2",
+    "prompt_sha256": "95e7c003b858",
+    "judge": "claude-subscription",
+    "extraction_temperature": 0.1,
+    "judge_temperature": 0.0
+  },
+  "aggregate": {
+    "cases": {
+      "dream-boundary": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      }
+    },
+    "overall": {
+      "mean_f1": 1.0,
+      "std_f1": 0.0,
+      "total_hallucinations": 0,
+      "hallucinations_per_trial": 0.0,
+      "total_schema_violations": 0,
+      "total_atomicity_violations": 0
+    }
+  },
+  "trials": [
+    [
+      {
+        "id": "dream-boundary",
+        "extraction_ms": 6720,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 2,
+            "extracted": 4,
+            "matched": 2,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I woke at 4am from a dream where I was back in Shanghai giving a talk in the old campus hall",
+              "type": "health",
+              "location": null,
+              "significance": "It disrupted my sleep and lingered with me after waking",
+              "people_involved": [],
+              "context": "Early-morning waking after a vivid dream"
+            },
+            {
+              "description": "I couldn't fall back asleep",
+              "type": "health",
+              "location": null,
+              "significance": "I stayed awake for the rest of the night",
+              "people_involved": [],
+              "context": "After waking at 4am"
+            },
+            {
+              "description": "I made tea",
+              "type": "hobbies",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "I made tea because I couldn't fall back asleep"
+            },
+            {
+              "description": "I watched the street lights until sunrise",
+              "type": "personal_growth",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "Quietly passing time from early morning until sunrise"
+            }
+          ],
+          "emotions": [
+            {
+              "name": "homesickness",
+              "intensity": 0.8,
+              "valence": "negative",
+              "context": "I miss home more than I usually admit"
+            }
+          ],
+          "truths": [
+            {
+              "content": "I miss home more than I usually admit",
+              "type": "pattern",
+              "confidence": 0.95
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 0,
+                "emotion_index": 0,
+                "intensity": 0.6
+              },
+              {
+                "experience_index": 3,
+                "emotion_index": 0,
+                "intensity": 0.4
+              }
+            ],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  0,
+                  3
+                ],
+                "contribution_weights": [
+                  0.6,
+                  0.4
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-dream-boundary",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Woke at 4am from a dream where I was back in Shanghai giving a talk in the old campus hall. Couldn't fall back asleep, so I made tea and watched the street lights until sunrise. I miss home more than "
+          },
+          "diary_metadata": {
+            "diary_id": "eval-dream-boundary",
+            "diary_date": "2026-07-05",
+            "content_preview": "Woke at 4am from a dream where I was back in Shanghai giving a talk in the old campus hall. Couldn't fall back asleep, so I made tea and watched the street lights until sunrise. I miss home more than "
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              },
+              {
+                "gold_index": 1,
+                "extracted_index": 3
+              }
+            ],
+            "emotions": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "Couldn't fall back asleep is stated in the diary"
+              },
+              {
+                "extracted_index": 2,
+                "classification": "grounded",
+                "reason": "Making tea is stated in the diary"
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      }
+    ]
+  ]
+}

@@ -42,14 +42,87 @@ never fill in details that were not retrieved.
 - For date questions, use the stored dates. For counting questions, count the \
 retrieved items."""
 
+# Neutral tool definitions — single source for both ask() paths:
+# claude-subscription gets them via the MCP server (same names), API backends
+# via each SDK's tool-calling format (LLMBackend.complete_tools).
+TOOL_DEFS = [
+    {
+        "name": "search_experiences",
+        "description": (
+            "Semantically search stored personal experiences (life events). "
+            "Returns descriptions, dates, locations, significance, and "
+            "associated emotions."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string",
+                          "description": "What to search for."},
+                "top_k": {"type": "integer",
+                          "description": "Number of results (default 5)."},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "search_truths",
+        "description": (
+            "Semantically search stored self-knowledge: beliefs, patterns, "
+            "preferences, and goals, with their source experiences."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string",
+                          "description": "What self-knowledge to look for."},
+                "top_k": {"type": "integer",
+                          "description": "Number of results (default 5)."},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "get_experiences_by_emotion",
+        "description": "Find all experiences that evoked a specific emotion.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "emotion_name": {"type": "string",
+                                 "description": "Emotion name, e.g. 'joy'."},
+            },
+            "required": ["emotion_name"],
+        },
+    },
+    {
+        "name": "get_emotional_patterns",
+        "description": (
+            "Overview of emotional patterns: emotion frequency, average "
+            "intensity, valence."
+        ),
+        "parameters": {"type": "object", "properties": {}, "required": []},
+    },
+]
+
 # MCP tool names as claude CLI namespaces them: mcp__<server>__<tool>
 MCP_SERVER_NAME = "memora"
-MCP_TOOL_NAMES = [
-    "search_experiences",
-    "search_truths",
-    "get_experiences_by_emotion",
-    "get_emotional_patterns",
-]
+MCP_TOOL_NAMES = [t["name"] for t in TOOL_DEFS]
+
+
+async def _dispatch(name: str, args: dict) -> str:
+    """Execute one tool call against the retriever; returns a JSON string."""
+    from memora.memory import retriever
+
+    handlers = {
+        "search_experiences": retriever.search_experiences,
+        "search_truths": retriever.search_truths,
+        "get_experiences_by_emotion": retriever.get_experiences_by_emotion,
+        "get_emotional_patterns": retriever.get_emotional_patterns,
+    }
+    handler = handlers.get(name)
+    if handler is None:
+        return json.dumps({"error": f"Unknown tool: {name}"})
+    result = await handler(**args)
+    return json.dumps(result, default=str, ensure_ascii=False)
 
 
 def _allowed_tools() -> str:
@@ -132,6 +205,12 @@ async def ask(
         llm_config = load_config().llm
     if llm_config.backend == "claude-subscription":
         return await _ask_claude_cli(question, top_k, llm_config.model)
-    raise NotImplementedError(
-        f"ask() does not support backend {llm_config.backend!r} yet"
-    )
+    from memora.llm import get_backend
+    backend = get_backend(llm_config)
+    return (await backend.complete_tools(
+        SYSTEM_PROMPT,
+        f"When searching, request top_k={top_k} results per tool call.\n\n"
+        f"Question: {question}",
+        TOOL_DEFS,
+        _dispatch,
+    )).strip()

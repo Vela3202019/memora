@@ -10,3 +10,5 @@ data/
 *.egg-info/
 build/
 dist/
+
+evals/locomo/cache/

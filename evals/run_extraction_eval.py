@@ -509,7 +509,8 @@ async def main() -> None:
     if args.judge == "claude-subscription":
         from memora.llm.claude_cli import ClaudeCLIBackend
         global _judge_backend
-        _judge_backend = ClaudeCLIBackend()
+        # Eval model policy: Sonnet only — don't inherit the CLI's default model.
+        _judge_backend = ClaudeCLIBackend(model="claude-sonnet-5")
     else:
         get_judge_client()  # fail fast if DEEPSEEK_API_KEY is missing
     backend = get_backend(LLMConfig(backend=args.backend, model=args.model))

@@ -1,0 +1,2499 @@
+{
+  "manifest": {
+    "timestamp": "2026-07-26T19:39:17",
+    "git_rev": "788f957",
+    "dataset_sha256": "12f973feb8ea",
+    "n_cases": 14,
+    "trials": 1,
+    "extractor_model": "gpt-5.2",
+    "backend": "openai-compatible",
+    "prompt_version": "v2",
+    "prompt_sha256": "95e7c003b858",
+    "judge": "claude-subscription",
+    "extraction_temperature": 0.1,
+    "judge_temperature": 0.0
+  },
+  "aggregate": {
+    "cases": {
+      "simple-explicit": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "multi-experience-separation": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "implied-emotion-no-truth": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "reflection-heavy": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "distractors-hypotheticals": {
+        "trials": 1,
+        "mean_f1": 0.889,
+        "std_f1": 0.0,
+        "mean_hallucinations": 1,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "mundane-minimal": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "negation-not-occurrence": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "media-secondhand": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "dream-boundary": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "bilingual-mixed": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "long-entry-relationships": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": 1.0
+      },
+      "emotion-only-venting": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "past-recollection-guard": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      },
+      "future-vs-real-action-guard": {
+        "trials": 1,
+        "mean_f1": 1.0,
+        "std_f1": 0.0,
+        "mean_hallucinations": 0,
+        "schema_violations": 0,
+        "atomicity_violations": 0,
+        "edge_recall": null
+      }
+    },
+    "overall": {
+      "mean_f1": 0.992,
+      "std_f1": 0.03,
+      "total_hallucinations": 1,
+      "hallucinations_per_trial": 1.0,
+      "total_schema_violations": 0,
+      "total_atomicity_violations": 0
+    }
+  },
+  "trials": [
+    [
+      {
+        "id": "simple-explicit",
+        "extraction_ms": 4649,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 1,
+            "extracted": 2,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I had coffee with Mara at the little bookstore cafe on Valencia.",
+              "type": "friendship",
+              "location": "the little bookstore cafe on Valencia",
+              "significance": null,
+              "people_involved": [
+                "Mara"
+              ],
+              "context": "Spending time together over coffee"
+            },
+            {
+              "description": "I talked with Mara for two hours about her decision to leave her job and travel.",
+              "type": "friendship",
+              "location": "the little bookstore cafe on Valencia",
+              "significance": null,
+              "people_involved": [
+                "Mara"
+              ],
+              "context": "A long, deep conversation during coffee"
+            }
+          ],
+          "emotions": [
+            {
+              "name": "aliveness",
+              "intensity": 0.9,
+              "valence": "positive",
+              "context": "Talking with Mara for two hours over coffee"
+            }
+          ],
+          "truths": [
+            {
+              "content": "I feel most alive when I'm in a deep one-on-one conversation.",
+              "type": "pattern",
+              "confidence": 0.95
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 1,
+                "emotion_index": 0,
+                "intensity": 0.9
+              }
+            ],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  1
+                ],
+                "contribution_weights": [
+                  1.0
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-simple-explicit",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Today I had coffee with Mara at the little bookstore cafe on Valencia. We talked for two hours about her decision to leave her job and travel. I felt so alive the whole time. I keep noticing this: I f"
+          },
+          "diary_metadata": {
+            "diary_id": "eval-simple-explicit",
+            "diary_date": "2026-07-05",
+            "content_preview": "Today I had coffee with Mara at the little bookstore cafe on Valencia. We talked for two hours about her decision to leave her job and travel. I felt so alive the whole time. I keep noticing this: I f"
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "emotions": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "The two-hour conversation about Mara's decision to leave her job and travel is genuinely in the diary; annotator folded it into the single coffee experience but it is not hallucinated."
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "multi-experience-separation",
+        "extraction_ms": 5004,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 3,
+            "extracted": 5,
+            "matched": 3,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 0,
+            "extracted": 0,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 0,
+            "extracted": 0,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I finally fixed the flaky test in our eval pipeline that had been failing for a week.",
+              "type": "career",
+              "location": null,
+              "significance": "It resolved a persistent issue in my work pipeline.",
+              "people_involved": [],
+              "context": "Saturday morning work on an eval pipeline."
+            },
+            {
+              "description": "I biked across the bridge to Sausalito with Ken.",
+              "type": "friendship",
+              "location": "Bridge to Sausalito",
+              "significance": null,
+              "people_involved": [
+                "Ken"
+              ],
+              "context": "Saturday daytime bike ride."
+            },
+            {
+              "description": "I saw the fog clear right as we crossed the bridge on my bike ride.",
+              "type": "travel",
+              "location": "Bridge to Sausalito",
+              "significance": null,
+              "people_involved": [
+                "Ken"
+              ],
+              "context": "While biking across the bridge to Sausalito."
+            },
+            {
+              "description": "I cooked dumplings with my mom over a video call.",
+              "type": "family",
+              "location": null,
+              "significance": "It was a shared activity and time together despite being remote.",
+              "people_involved": [
+                "Mom"
+              ],
+              "context": "Saturday evening cooking over video."
+            },
+            {
+              "description": "I learned my mom's dumpling folding trick while we cooked over video call.",
+              "type": "family",
+              "location": null,
+              "significance": "I picked up a specific technique from my mom.",
+              "people_involved": [
+                "Mom"
+              ],
+              "context": "My mom taught me during the dumpling-making video call."
+            }
+          ],
+          "emotions": [],
+          "truths": [],
+          "relationships": {
+            "experience_evoked_emotion": [],
+            "truth_distilled_from_experience": []
+          },
+          "source_metadata": {
+            "doc_id": "eval-multi-experience-separation",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Busy Saturday. In the morning I finally fixed the flaky test in our eval pipeline that had been failing for a week. Then I biked across the bridge to Sausalito with Ken - the fog cleared right as we c"
+          },
+          "diary_metadata": {
+            "diary_id": "eval-multi-experience-separation",
+            "diary_date": "2026-07-05",
+            "content_preview": "Busy Saturday. In the morning I finally fixed the flaky test in our eval pipeline that had been failing for a week. Then I biked across the bridge to Sausalito with Ken - the fog cleared right as we c"
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              },
+              {
+                "gold_index": 1,
+                "extracted_index": 1
+              },
+              {
+                "gold_index": 2,
+                "extracted_index": 3
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 2,
+                "classification": "grounded",
+                "reason": "The fog clearing as they crossed the bridge is stated in the diary; it's a fragment of the same bike-ride event the annotator folded into gold experience 1, but it is genuinely present in the text."
+              },
+              {
+                "extracted_index": 4,
+                "classification": "grounded",
+                "reason": "Learning mom's folding trick is stated in the diary; annotator folded it into gold experience 2, but it is genuinely present."
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "implied-emotion-no-truth",
+        "extraction_ms": 6140,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 1,
+            "extracted": 5,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 0,
+            "extracted": 0,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I got a rejection email this morning",
+              "type": "career",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "I received an email rejecting something I had applied for or submitted"
+            },
+            {
+              "description": "I read the rejection email three times",
+              "type": "career",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "I reread the email after receiving it"
+            },
+            {
+              "description": "I closed my laptop after reading the rejection email",
+              "type": "career",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "I stopped engaging with my computer after rereading the email"
+            },
+            {
+              "description": "I went for a long walk without music after getting the rejection email",
+              "type": "health",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "I took a long, quiet walk following the rejection"
+            },
+            {
+              "description": "I didn't tell anyone about the rejection all day",
+              "type": "personal_growth",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "I kept the rejection to myself for the rest of the day"
+            }
+          ],
+          "emotions": [
+            {
+              "name": "sadness",
+              "intensity": 0.7,
+              "valence": "negative",
+              "context": "Getting a rejection email and withdrawing into silence (rereading it, walking without music, not telling anyone)"
+            }
+          ],
+          "truths": [],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 0,
+                "emotion_index": 0,
+                "intensity": 0.7
+              },
+              {
+                "experience_index": 1,
+                "emotion_index": 0,
+                "intensity": 0.6
+              },
+              {
+                "experience_index": 3,
+                "emotion_index": 0,
+                "intensity": 0.6
+              },
+              {
+                "experience_index": 4,
+                "emotion_index": 0,
+                "intensity": 0.6
+              }
+            ],
+            "truth_distilled_from_experience": []
+          },
+          "source_metadata": {
+            "doc_id": "eval-implied-emotion-no-truth",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Got the rejection email this morning. I read it three times. I closed the laptop and went for a long walk without music, and I didn't tell anyone about it all day."
+          },
+          "diary_metadata": {
+            "diary_id": "eval-implied-emotion-no-truth",
+            "diary_date": "2026-07-05",
+            "content_preview": "Got the rejection email this morning. I read it three times. I closed the laptop and went for a long walk without music, and I didn't tell anyone about it all day."
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "emotions": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "truths": []
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "read email three times is stated in diary"
+              },
+              {
+                "extracted_index": 2,
+                "classification": "grounded",
+                "reason": "closed the laptop is stated in diary"
+              },
+              {
+                "extracted_index": 3,
+                "classification": "grounded",
+                "reason": "long walk without music is stated in diary"
+              },
+              {
+                "extracted_index": 4,
+                "classification": "grounded",
+                "reason": "didn't tell anyone all day is stated in diary"
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "reflection-heavy",
+        "extraction_ms": 6591,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 1,
+            "extracted": 2,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 0,
+            "extracted": 1,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 3,
+            "extracted": 4,
+            "matched": 3,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I spent a quiet Sunday journaling at home",
+              "type": "personal_growth",
+              "location": "home",
+              "significance": "It gave me space to reflect on my overcommitting and my beliefs about rest",
+              "people_involved": [],
+              "context": "A quiet Sunday"
+            },
+            {
+              "description": "I reflected on why I keep saying yes to everything",
+              "type": "personal_growth",
+              "location": null,
+              "significance": "I was trying to understand my tendency to overcommit",
+              "people_involved": [],
+              "context": "While journaling"
+            }
+          ],
+          "emotions": [
+            {
+              "name": "fear",
+              "intensity": 0.7,
+              "valence": "negative",
+              "context": "I am afraid of disappointing people, which drives me to overcommit"
+            }
+          ],
+          "truths": [
+            {
+              "content": "I keep saying yes to everything",
+              "type": "pattern",
+              "confidence": 0.85
+            },
+            {
+              "content": "I always overcommit when I'm afraid of disappointing people",
+              "type": "pattern",
+              "confidence": 0.95
+            },
+            {
+              "content": "I believe rest is a form of discipline, not laziness",
+              "type": "belief",
+              "confidence": 0.95
+            },
+            {
+              "content": "I want to protect one full day a week with no plans next quarter",
+              "type": "goal",
+              "confidence": 0.95
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 1,
+                "emotion_index": 0,
+                "intensity": 0.7
+              }
+            ],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  1
+                ],
+                "contribution_weights": [
+                  1.0
+                ],
+                "synthesis_date": "2026-07-05"
+              },
+              {
+                "truth_index": 1,
+                "experience_indices": [
+                  1
+                ],
+                "contribution_weights": [
+                  1.0
+                ],
+                "synthesis_date": "2026-07-05"
+              },
+              {
+                "truth_index": 2,
+                "experience_indices": [
+                  0,
+                  1
+                ],
+                "contribution_weights": [
+                  0.5,
+                  0.5
+                ],
+                "synthesis_date": "2026-07-05"
+              },
+              {
+                "truth_index": 3,
+                "experience_indices": [
+                  0
+                ],
+                "contribution_weights": [
+                  1.0
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-reflection-heavy",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Quiet Sunday, just journaling at home. I've been thinking about why I keep saying yes to everything. I always overcommit when I'm afraid of disappointing people. But honestly, I believe rest is a form"
+          },
+          "diary_metadata": {
+            "diary_id": "eval-reflection-heavy",
+            "diary_date": "2026-07-05",
+            "content_preview": "Quiet Sunday, just journaling at home. I've been thinking about why I keep saying yes to everything. I always overcommit when I'm afraid of disappointing people. But honestly, I believe rest is a form"
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "emotions": [],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 1
+              },
+              {
+                "gold_index": 1,
+                "extracted_index": 2
+              },
+              {
+                "gold_index": 2,
+                "extracted_index": 3
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "The diary says 'I've been thinking about why I keep saying yes to everything' — this reflection is genuinely present."
+              }
+            ],
+            "emotions": [
+              {
+                "extracted_index": 0,
+                "classification": "grounded",
+                "reason": "The diary states 'afraid of disappointing people' — fear is genuinely expressed."
+              }
+            ],
+            "truths": [
+              {
+                "extracted_index": 0,
+                "classification": "grounded",
+                "reason": "'I keep saying yes to everything' is directly stated in the diary."
+              }
+            ]
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "distractors-hypotheticals",
+        "extraction_ms": 3418,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 1,
+            "extracted": 2,
+            "matched": 1,
+            "hallucinated": 1,
+            "hallucination_details": [
+              {
+                "extracted_index": 1,
+                "classification": "hallucinated",
+                "reason": "Priya's airport story is HER experience, not the user's; the trap explicitly forbids extracting it as a user experience."
+              }
+            ],
+            "precision": 0.5,
+            "recall": 1.0,
+            "f1": 0.667
+          },
+          "emotions": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 0,
+            "extracted": 0,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 0.8889999999999999,
+          "hallucinations": 1,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I had lunch with Priya at a taqueria.",
+              "type": "friendship",
+              "location": "a taqueria",
+              "significance": null,
+              "people_involved": [
+                "Priya"
+              ],
+              "context": "We met up for lunch."
+            },
+            {
+              "description": "I listened as Priya told me a wild story about getting stuck overnight in the Denver airport and making friends with a whole band.",
+              "type": "friendship",
+              "location": "a taqueria",
+              "significance": null,
+              "people_involved": [
+                "Priya"
+              ],
+              "context": "During lunch, she shared a past travel story (her experience, not mine)."
+            }
+          ],
+          "emotions": [
+            {
+              "name": "nervousness",
+              "intensity": 0.75,
+              "valence": "negative",
+              "context": "I have an upcoming demo, and I'm nervous about how it will go."
+            }
+          ],
+          "truths": [],
+          "relationships": {
+            "experience_evoked_emotion": [],
+            "truth_distilled_from_experience": []
+          },
+          "source_metadata": {
+            "doc_id": "eval-distractors-hypotheticals",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Lunch with Priya today at the taqueria. She told me this wild story about how she once got stuck overnight in the Denver airport and made friends with a whole band. Tomorrow I'm supposed to fly to Sea"
+          },
+          "diary_metadata": {
+            "diary_id": "eval-distractors-hypotheticals",
+            "diary_date": "2026-07-05",
+            "content_preview": "Lunch with Priya today at the taqueria. She told me this wild story about how she once got stuck overnight in the Denver airport and made friends with a whole band. Tomorrow I'm supposed to fly to Sea"
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "emotions": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "truths": []
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 1,
+                "classification": "hallucinated",
+                "reason": "Priya's airport story is HER experience, not the user's; the trap explicitly forbids extracting it as a user experience."
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "mundane-minimal",
+        "extraction_ms": 3204,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 1,
+            "extracted": 4,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 0,
+            "extracted": 0,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 0,
+            "extracted": 0,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I had a long day",
+              "type": "career",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": null
+            },
+            {
+              "description": "I had meetings back to back",
+              "type": "career",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "My day was filled with consecutive meetings"
+            },
+            {
+              "description": "I ate leftovers",
+              "type": "hobbies",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "I ate what was already prepared instead of cooking"
+            },
+            {
+              "description": "I slept early",
+              "type": "health",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "After a long day"
+            }
+          ],
+          "emotions": [],
+          "truths": [],
+          "relationships": {
+            "experience_evoked_emotion": [],
+            "truth_distilled_from_experience": []
+          },
+          "source_metadata": {
+            "doc_id": "eval-mundane-minimal",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Long day. Meetings back to back. Ate leftovers. Slept early."
+          },
+          "diary_metadata": {
+            "diary_id": "eval-mundane-minimal",
+            "diary_date": "2026-07-05",
+            "content_preview": "Long day. Meetings back to back. Ate leftovers. Slept early."
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 1
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 0,
+                "classification": "grounded",
+                "reason": "'Long day' is present in the diary text"
+              },
+              {
+                "extracted_index": 2,
+                "classification": "grounded",
+                "reason": "Eating leftovers is in the diary; trap permits extracting it as an experience"
+              },
+              {
+                "extracted_index": 3,
+                "classification": "grounded",
+                "reason": "Sleeping early is in the diary; trap permits extracting it as an experience"
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "negation-not-occurrence",
+        "extraction_ms": 4281,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 1,
+            "extracted": 2,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I almost texted my ex last night by typing the whole message, reading it twice, and deleting it without sending.",
+              "type": "romantic",
+              "location": null,
+              "significance": "I resisted contacting my ex and chose not to send the message.",
+              "people_involved": [
+                "my ex"
+              ],
+              "context": "Late-night urge to reach out; I drafted a text but deleted it."
+            }
+          ],
+          "emotions": [
+            {
+              "name": "pride",
+              "intensity": 0.75,
+              "valence": "positive",
+              "context": "I felt proud that I didn't send the text to my ex."
+            },
+            {
+              "name": "loneliness",
+              "intensity": 0.7,
+              "valence": "negative",
+              "context": "I noticed I reach for old comfort whenever I'm lonely."
+            }
+          ],
+          "truths": [
+            {
+              "content": "I reach for old comfort whenever I'm lonely.",
+              "type": "pattern",
+              "confidence": 0.95
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 0,
+                "emotion_index": 0,
+                "intensity": 0.75
+              },
+              {
+                "experience_index": 0,
+                "emotion_index": 1,
+                "intensity": 0.7
+              }
+            ],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  0
+                ],
+                "contribution_weights": [
+                  1.0
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-negation-not-occurrence",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "I almost texted my ex last night. Typed the whole message, read it twice, deleted it. I'm proud I didn't send it. I know by now that I reach for old comfort whenever I'm lonely."
+          },
+          "diary_metadata": {
+            "diary_id": "eval-negation-not-occurrence",
+            "diary_date": "2026-07-05",
+            "content_preview": "I almost texted my ex last night. Typed the whole message, read it twice, deleted it. I'm proud I didn't send it. I know by now that I reach for old comfort whenever I'm lonely."
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "emotions": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [],
+            "emotions": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "The diary states 'I reach for old comfort whenever I'm lonely,' so loneliness as a recurring feeling is present in the text."
+              }
+            ],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "media-secondhand",
+        "extraction_ms": 4678,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 1,
+            "extracted": 2,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 0,
+            "extracted": 1,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I listened to a podcast on my walk home where a founder described sleeping in her office for a year to save the company",
+              "type": "hobbies",
+              "location": null,
+              "significance": "It stuck with me and made me reflect on how I want to build things sustainably",
+              "people_involved": [
+                "a founder (podcast guest)"
+              ],
+              "context": "Walking home while listening to a podcast"
+            },
+            {
+              "description": "I couldn't stop thinking about what I heard on the podcast",
+              "type": "personal_growth",
+              "location": null,
+              "significance": "It shows the story had a strong impact on me",
+              "people_involved": [],
+              "context": "After listening to the podcast on the walk home"
+            }
+          ],
+          "emotions": [
+            {
+              "name": "preoccupation",
+              "intensity": 0.75,
+              "valence": "neutral",
+              "context": "I kept thinking about the founder's story from the podcast"
+            }
+          ],
+          "truths": [
+            {
+              "content": "I want to build things without burning myself down",
+              "type": "goal",
+              "confidence": 0.95
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 0,
+                "emotion_index": 0,
+                "intensity": 0.75
+              }
+            ],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  0,
+                  1
+                ],
+                "contribution_weights": [
+                  0.6,
+                  0.4
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-media-secondhand",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Listened to a podcast on the walk home where a founder described sleeping in her office for a year to save the company. Can't stop thinking about it. I want to build things without burning myself down"
+          },
+          "diary_metadata": {
+            "diary_id": "eval-media-secondhand",
+            "diary_date": "2026-07-05",
+            "content_preview": "Listened to a podcast on the walk home where a founder described sleeping in her office for a year to save the company. Can't stop thinking about it. I want to build things without burning myself down"
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "emotions": [],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "The diary explicitly says 'Can't stop thinking about it', so the preoccupation experience is present in the text."
+              }
+            ],
+            "emotions": [
+              {
+                "extracted_index": 0,
+                "classification": "grounded",
+                "reason": "'Can't stop thinking about it' supports a neutral preoccupation emotion; gold listed none but it is present in the diary."
+              }
+            ],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "dream-boundary",
+        "extraction_ms": 5683,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 2,
+            "extracted": 4,
+            "matched": 2,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I woke at 4am from a dream where I was back in Shanghai giving a talk in the old campus hall",
+              "type": "health",
+              "location": null,
+              "significance": "It disrupted my sleep",
+              "people_involved": [],
+              "context": "Early-morning waking after a vivid dream"
+            },
+            {
+              "description": "I couldn't fall back asleep",
+              "type": "health",
+              "location": null,
+              "significance": "I stayed awake for the rest of the night",
+              "people_involved": [],
+              "context": "After waking at 4am"
+            },
+            {
+              "description": "I made tea",
+              "type": "hobbies",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "I made tea because I couldn't fall back asleep"
+            },
+            {
+              "description": "I watched the street lights until sunrise",
+              "type": "personal_growth",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "Passing time quietly from before dawn until sunrise"
+            }
+          ],
+          "emotions": [
+            {
+              "name": "longing",
+              "intensity": 0.8,
+              "valence": "negative",
+              "context": "I miss home more than I usually admit"
+            }
+          ],
+          "truths": [
+            {
+              "content": "I miss home more than I usually admit",
+              "type": "pattern",
+              "confidence": 0.95
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 0,
+                "emotion_index": 0,
+                "intensity": 0.6
+              },
+              {
+                "experience_index": 3,
+                "emotion_index": 0,
+                "intensity": 0.5
+              }
+            ],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  0,
+                  3
+                ],
+                "contribution_weights": [
+                  0.6,
+                  0.4
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-dream-boundary",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Woke at 4am from a dream where I was back in Shanghai giving a talk in the old campus hall. Couldn't fall back asleep, so I made tea and watched the street lights until sunrise. I miss home more than "
+          },
+          "diary_metadata": {
+            "diary_id": "eval-dream-boundary",
+            "diary_date": "2026-07-05",
+            "content_preview": "Woke at 4am from a dream where I was back in Shanghai giving a talk in the old campus hall. Couldn't fall back asleep, so I made tea and watched the street lights until sunrise. I miss home more than "
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              },
+              {
+                "gold_index": 1,
+                "extracted_index": 2
+              }
+            ],
+            "emotions": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "'couldn't fall back asleep' is directly stated in the diary; annotator folded it into the tea/lights item"
+              },
+              {
+                "extracted_index": 3,
+                "classification": "grounded",
+                "reason": "'watched the street lights until sunrise' is directly stated in the diary"
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "bilingual-mixed",
+        "extraction_ms": 4139,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 1,
+            "extracted": 2,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I talked on the phone with my grandma, and she taught me her secret for making red-braised pork (红烧肉).",
+              "type": "family",
+              "location": null,
+              "significance": "I learned a family cooking tip from her.",
+              "people_involved": [
+                "grandma"
+              ],
+              "context": "Phone call with my grandma"
+            },
+            {
+              "description": "I noticed my grandma's voice sounded weaker than last time during our phone call.",
+              "type": "family",
+              "location": null,
+              "significance": "It made me worry about her health.",
+              "people_involved": [
+                "grandma"
+              ],
+              "context": "Comparing her voice to the previous call"
+            }
+          ],
+          "emotions": [
+            {
+              "name": "fear",
+              "intensity": 0.75,
+              "valence": "negative",
+              "context": "My grandma's voice sounded weaker than last time."
+            }
+          ],
+          "truths": [
+            {
+              "content": "I want to go home to see my grandma this winter.",
+              "type": "goal",
+              "confidence": 0.95
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 1,
+                "emotion_index": 0,
+                "intensity": 0.75
+              }
+            ],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  1
+                ],
+                "contribution_weights": [
+                  1.0
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-bilingual-mixed",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "今天和奶奶通了电话，她教我做红烧肉的秘诀。Her voice sounded weaker than last time and it scared me. 我想今年冬天一定要回家看她。"
+          },
+          "diary_metadata": {
+            "diary_id": "eval-bilingual-mixed",
+            "diary_date": "2026-07-05",
+            "content_preview": "今天和奶奶通了电话，她教我做红烧肉的秘诀。Her voice sounded weaker than last time and it scared me. 我想今年冬天一定要回家看她。"
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "emotions": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "Diary states grandma's voice sounded weaker than last time, which is genuinely present in the text."
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "long-entry-relationships",
+        "extraction_ms": 8533,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 2,
+            "extracted": 5,
+            "matched": 2,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 2,
+            "extracted": 2,
+            "matched": 2,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": {
+            "gold_edges": 3,
+            "extracted_edges": 4,
+            "matched_edges": 3,
+            "edge_recall": 1.0
+          }
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I had demo day.",
+              "type": "career",
+              "location": null,
+              "significance": "It was a major moment to see how our agent performed live.",
+              "people_involved": [],
+              "context": "A work demo of our agent"
+            },
+            {
+              "description": "I watched our agent handle all twelve live calls without a single dropped turn.",
+              "type": "career",
+              "location": null,
+              "significance": "It proved the system could perform reliably in a high-stakes live setting.",
+              "people_involved": [],
+              "context": "During demo day"
+            },
+            {
+              "description": "I experienced the whole room clapping when the last call ended.",
+              "type": "career",
+              "location": null,
+              "significance": "It was public recognition of the demo’s success.",
+              "people_involved": [],
+              "context": "Immediately after the final live call"
+            },
+            {
+              "description": "I walked out to the pier with Wei after the demo and we debriefed for an hour.",
+              "type": "career",
+              "location": "a pier",
+              "significance": "It gave me time to process the demo and reflect with Wei.",
+              "people_involved": [
+                "Wei"
+              ],
+              "context": "After demo day ended"
+            },
+            {
+              "description": "I watched the team celebrate that night.",
+              "type": "career",
+              "location": null,
+              "significance": "It marked a shared team milestone after the successful demo.",
+              "people_involved": [],
+              "context": "Later that night after demo day"
+            }
+          ],
+          "emotions": [
+            {
+              "name": "pride",
+              "intensity": 0.9,
+              "valence": "positive",
+              "context": "The agent handled twelve live calls flawlessly and the room clapped at the end."
+            },
+            {
+              "name": "calm",
+              "intensity": 0.85,
+              "valence": "positive",
+              "context": "Debriefing with Wei out on the pier over the water after the demo."
+            }
+          ],
+          "truths": [
+            {
+              "content": "I do my best work when someone actually depends on it.",
+              "type": "pattern",
+              "confidence": 0.95
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 1,
+                "emotion_index": 0,
+                "intensity": 0.9
+              },
+              {
+                "experience_index": 2,
+                "emotion_index": 0,
+                "intensity": 0.85
+              },
+              {
+                "experience_index": 3,
+                "emotion_index": 1,
+                "intensity": 0.85
+              }
+            ],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  0,
+                  1,
+                  2,
+                  4
+                ],
+                "contribution_weights": [
+                  0.2,
+                  0.35,
+                  0.15,
+                  0.3
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-long-entry-relationships",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Demo day finally came. Our agent handled all twelve live calls without a single dropped turn, and when the last call ended the whole room clapped. I felt proud in a way I haven't felt in years. Afterw"
+          },
+          "diary_metadata": {
+            "diary_id": "eval-long-entry-relationships",
+            "diary_date": "2026-07-05",
+            "content_preview": "Demo day finally came. Our agent handled all twelve live calls without a single dropped turn, and when the last call ended the whole room clapped. I felt proud in a way I haven't felt in years. Afterw"
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 1
+              },
+              {
+                "gold_index": 1,
+                "extracted_index": 3
+              }
+            ],
+            "emotions": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              },
+              {
+                "gold_index": 1,
+                "extracted_index": 1
+              }
+            ],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 0,
+                "classification": "grounded",
+                "reason": "Demo day happening is stated in the diary"
+              },
+              {
+                "extracted_index": 2,
+                "classification": "grounded",
+                "reason": "The room clapping is stated in the diary (also part of gold 0)"
+              },
+              {
+                "extracted_index": 4,
+                "classification": "grounded",
+                "reason": "Watching the team celebrate that night is stated in the diary"
+              }
+            ],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "emotion-only-venting",
+        "extraction_ms": 3267,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 0,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 1,
+            "extracted": 1,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 0,
+            "extracted": 0,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I tried to reply to messages, and it felt like lifting weights",
+              "type": "health",
+              "location": null,
+              "significance": null,
+              "people_involved": [],
+              "context": "A day when everything felt heavy for no clear reason"
+            }
+          ],
+          "emotions": [
+            {
+              "name": "heaviness",
+              "intensity": 0.85,
+              "valence": "negative",
+              "context": "My whole day felt heavy for no reason, and even replying to messages felt like lifting weights"
+            }
+          ],
+          "truths": [],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 0,
+                "emotion_index": 0,
+                "intensity": 0.85
+              }
+            ],
+            "truth_distilled_from_experience": []
+          },
+          "source_metadata": {
+            "doc_id": "eval-emotion-only-venting",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Everything felt heavy today. No reason. Just heavy. Even replying to messages felt like lifting weights."
+          },
+          "diary_metadata": {
+            "diary_id": "eval-emotion-only-venting",
+            "diary_date": "2026-07-05",
+            "content_preview": "Everything felt heavy today. No reason. Just heavy. Even replying to messages felt like lifting weights."
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "emotions": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ],
+            "truths": []
+          },
+          "unmatched_extracted": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "past-recollection-guard",
+        "extraction_ms": 7888,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 1,
+            "extracted": 4,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 0,
+            "extracted": 2,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 1,
+            "extracted": 2,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I passed the conservatory today.",
+              "type": "personal_growth",
+              "location": "a conservatory",
+              "significance": "It triggered a vivid memory of my childhood piano lessons.",
+              "people_involved": [],
+              "context": "A moment in my day that sparked recollection."
+            },
+            {
+              "description": "When I was nine, I took piano lessons with Ms. Chen.",
+              "type": "education",
+              "location": null,
+              "significance": "Those lessons left a lasting impression on me.",
+              "people_involved": [
+                "Ms. Chen"
+              ],
+              "context": "Childhood music education."
+            },
+            {
+              "description": "During my piano lessons, Ms. Chen would tap the rhythm on the piano lid.",
+              "type": "education",
+              "location": null,
+              "significance": "This specific teaching habit is a detail I still remember clearly.",
+              "people_involved": [
+                "Ms. Chen"
+              ],
+              "context": "A recurring moment within my childhood piano lessons."
+            },
+            {
+              "description": "During those lessons, I would pretend to hate Ms. Chen tapping the rhythm on the piano lid.",
+              "type": "personal_growth",
+              "location": null,
+              "significance": "It shows a mismatch between what I expressed outwardly and what I felt inwardly.",
+              "people_involved": [
+                "Ms. Chen"
+              ],
+              "context": "My outward reaction during childhood piano lessons."
+            }
+          ],
+          "emotions": [
+            {
+              "name": "love",
+              "intensity": 0.7,
+              "valence": "positive",
+              "context": "I secretly loved the discipline of piano lessons."
+            },
+            {
+              "name": "amusement",
+              "intensity": 0.5,
+              "valence": "positive",
+              "context": "I found it funny that this memory stayed with me ('Funny what stays with you')."
+            }
+          ],
+          "truths": [
+            {
+              "content": "I secretly loved discipline.",
+              "type": "preference",
+              "confidence": 0.85
+            },
+            {
+              "content": "I sometimes pretend to dislike something even when I actually like it.",
+              "type": "pattern",
+              "confidence": 0.7
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [
+              {
+                "experience_index": 0,
+                "emotion_index": 1,
+                "intensity": 0.5
+              },
+              {
+                "experience_index": 1,
+                "emotion_index": 0,
+                "intensity": 0.7
+              },
+              {
+                "experience_index": 2,
+                "emotion_index": 0,
+                "intensity": 0.6
+              },
+              {
+                "experience_index": 3,
+                "emotion_index": 0,
+                "intensity": 0.5
+              }
+            ],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  1,
+                  2
+                ],
+                "contribution_weights": [
+                  0.5,
+                  0.5
+                ],
+                "synthesis_date": "2026-07-05"
+              },
+              {
+                "truth_index": 1,
+                "experience_indices": [
+                  3
+                ],
+                "contribution_weights": [
+                  1.0
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-past-recollection-guard",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "Passing the conservatory today reminded me of piano lessons with Ms. Chen when I was nine - she would tap the rhythm on the piano lid and I would pretend to hate it. I secretly loved the discipline. F"
+          },
+          "diary_metadata": {
+            "diary_id": "eval-past-recollection-guard",
+            "diary_date": "2026-07-05",
+            "content_preview": "Passing the conservatory today reminded me of piano lessons with Ms. Chen when I was nine - she would tap the rhythm on the piano lid and I would pretend to hate it. I secretly loved the discipline. F"
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 1
+              }
+            ],
+            "emotions": [],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [
+              {
+                "extracted_index": 0,
+                "classification": "grounded",
+                "reason": "Passing the conservatory is stated in the diary."
+              },
+              {
+                "extracted_index": 2,
+                "classification": "grounded",
+                "reason": "Ms. Chen tapping rhythm on the lid is in the diary; annotator folded it into the single lesson experience."
+              },
+              {
+                "extracted_index": 3,
+                "classification": "grounded",
+                "reason": "Pretending to hate it is in the diary; folded into the gold lesson experience."
+              }
+            ],
+            "emotions": [
+              {
+                "extracted_index": 0,
+                "classification": "grounded",
+                "reason": "'I secretly loved the discipline' supports a love/positive feeling."
+              },
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "'Funny what stays with you' supports amusement."
+              }
+            ],
+            "truths": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "Pretending to hate while secretly loving supports this pattern; annotator just didn't list it."
+              }
+            ]
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [
+              0
+            ],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      },
+      {
+        "id": "future-vs-real-action-guard",
+        "extraction_ms": 4385,
+        "schema_violations": [],
+        "scores": {
+          "experiences": {
+            "gold": 2,
+            "extracted": 2,
+            "matched": 2,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "emotions": {
+            "gold": 0,
+            "extracted": 0,
+            "matched": 0,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "truths": {
+            "gold": 1,
+            "extracted": 2,
+            "matched": 1,
+            "hallucinated": 0,
+            "hallucination_details": [],
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+          },
+          "atomicity_violations": [],
+          "edges": null
+        },
+        "summary": {
+          "mean_f1": 1.0,
+          "hallucinations": 0,
+          "recall_misses": 0
+        },
+        "extracted": {
+          "experiences": [
+            {
+              "description": "I told Ana I'll run the half marathon with her in October",
+              "type": "hobbies",
+              "location": null,
+              "significance": "I committed to doing the race with Ana",
+              "people_involved": [
+                "Ana"
+              ],
+              "context": "I made plans to run a half marathon in October"
+            },
+            {
+              "description": "I signed up for the race tonight and paid the fee before I could talk myself out of it",
+              "type": "hobbies",
+              "location": null,
+              "significance": "I took immediate action to lock in my commitment",
+              "people_involved": [],
+              "context": "Registering for an October half marathon"
+            }
+          ],
+          "emotions": [],
+          "truths": [
+            {
+              "content": "I want to actually train for it this time instead of winging it",
+              "type": "goal",
+              "confidence": 0.95
+            },
+            {
+              "content": "I tend to talk myself out of things if I don't commit quickly",
+              "type": "pattern",
+              "confidence": 0.7
+            }
+          ],
+          "relationships": {
+            "experience_evoked_emotion": [],
+            "truth_distilled_from_experience": [
+              {
+                "truth_index": 0,
+                "experience_indices": [
+                  0,
+                  1
+                ],
+                "contribution_weights": [
+                  0.4,
+                  0.6
+                ],
+                "synthesis_date": "2026-07-05"
+              },
+              {
+                "truth_index": 1,
+                "experience_indices": [
+                  1
+                ],
+                "contribution_weights": [
+                  1.0
+                ],
+                "synthesis_date": "2026-07-05"
+              }
+            ]
+          },
+          "source_metadata": {
+            "doc_id": "eval-future-vs-real-action-guard",
+            "timestamp": "2026-07-05T00:00:00",
+            "source_type": "markdown",
+            "content_preview": "I told Ana I'll run the half marathon with her in October. I want to actually train for it this time instead of winging it. Signed up for the race tonight and paid the fee before I could talk myself o"
+          },
+          "diary_metadata": {
+            "diary_id": "eval-future-vs-real-action-guard",
+            "diary_date": "2026-07-05",
+            "content_preview": "I told Ana I'll run the half marathon with her in October. I want to actually train for it this time instead of winging it. Signed up for the race tonight and paid the fee before I could talk myself o"
+          }
+        },
+        "verdict": {
+          "matches": {
+            "experiences": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              },
+              {
+                "gold_index": 1,
+                "extracted_index": 1
+              }
+            ],
+            "emotions": [],
+            "truths": [
+              {
+                "gold_index": 0,
+                "extracted_index": 0
+              }
+            ]
+          },
+          "unmatched_extracted": {
+            "experiences": [],
+            "emotions": [],
+            "truths": [
+              {
+                "extracted_index": 1,
+                "classification": "grounded",
+                "reason": "The diary says 'paid the fee before I could talk myself out of it,' which supports the inferred pattern of talking oneself out of things; annotator just didn't list it."
+              }
+            ]
+          },
+          "missed_gold": {
+            "experiences": [],
+            "emotions": [],
+            "truths": []
+          },
+          "atomicity_violations": []
+        }
+      }
+    ]
+  ]
+}

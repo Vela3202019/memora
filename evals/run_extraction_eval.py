@@ -32,6 +32,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import statistics
 import subprocess
 import time
@@ -153,7 +154,11 @@ async def judge_case(case: dict, extracted: dict) -> dict:
 # Deterministic checks
 # ---------------------------------------------------------------------------
 
-def check_schema(extracted: dict) -> list:
+PRONOUN_SUBJECTS = {"i", "me", "she", "he", "they", "her", "him", "them", "it"}
+PREDICATE_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+def check_schema(extracted: dict, prompt_version: str = "v2") -> list:
     """Deterministic structural checks. Returns list of violation strings."""
     violations = []
     experiences = extracted.get("experiences", [])
@@ -182,9 +187,25 @@ def check_schema(extracted: dict) -> list:
             violations.append(f"truth[{i}] missing content")
         if t.get("type") not in TRUTH_TYPES:
             violations.append(f"truth[{i}] invalid type: {t.get('type')!r}")
-        confidence = t.get("confidence")
-        if not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0:
-            violations.append(f"truth[{i}] confidence out of range: {confidence!r}")
+        if prompt_version in ("v1", "v2"):
+            # v1/v2 schema includes confidence; dropped from v3 onward —
+            # everything stored is asserted, not scored.
+            confidence = t.get("confidence")
+            if not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0:
+                violations.append(f"truth[{i}] confidence out of range: {confidence!r}")
+        elif "confidence" in t:
+            violations.append(f"truth[{i}] has confidence (removed in v3+)")
+
+    for i, f in enumerate(extracted.get("facts", []) or []):
+        subject = (f.get("subject") or "").strip()
+        if not subject:
+            violations.append(f"fact[{i}] missing subject")
+        elif subject.lower() in PRONOUN_SUBJECTS:
+            violations.append(f"fact[{i}] pronoun subject: {subject!r}")
+        if not PREDICATE_RE.match(f.get("predicate") or ""):
+            violations.append(f"fact[{i}] predicate not snake_case: {f.get('predicate')!r}")
+        if not f.get("statement"):
+            violations.append(f"fact[{i}] missing statement")
 
     rels = extracted.get("relationships", {}) or {}
     for j, rel in enumerate(rels.get("experience_evoked_emotion", []) or []):
@@ -322,7 +343,7 @@ async def run_case(case: dict, prompt_version: str, model: str, backend=None) ->
         backend=backend,
     )
     extraction_ms = int((time.monotonic() - start) * 1000)
-    schema_violations = check_schema(extracted)
+    schema_violations = check_schema(extracted, prompt_version)
     verdict = await judge_case(case, extracted)
     scores = score_case(case, extracted, verdict)
     return {

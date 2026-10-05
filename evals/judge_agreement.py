@@ -75,7 +75,7 @@ def main() -> None:
     dataset = json.loads((EVALS_DIR / "dataset.json").read_text())
     cases_by_id = {c["id"]: c for c in dataset["cases"]}
 
-    trial = run["trials"][0][: args.max_cases]
+    trial = [r for r in run["trials"][0] if "harness_error" not in r][: args.max_cases]
     rows = []
     for r in trial:
         case = cases_by_id[r["id"]]

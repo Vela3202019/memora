@@ -353,6 +353,14 @@ async def run_case(case: dict, prompt_version: str, model: str, backend=None) ->
         backend=backend,
     )
     extraction_ms = int((time.monotonic() - start) * 1000)
+    if extracted.get("error"):
+        # The extractor never produced an answer, so there is nothing to grade.
+        return {
+            "id": case["id"],
+            "extraction_ms": extraction_ms,
+            "harness_error": extracted["error"],
+            "extracted": extracted,
+        }
     schema_violations = check_schema(extracted, prompt_version)
     verdict = await judge_case(case, extracted)
     scores = score_case(case, extracted, verdict)
@@ -384,11 +392,17 @@ def aggregate(trials: list) -> dict:
             per_case.setdefault(r["id"], []).append(r)
 
     case_stats = {}
-    for case_id, runs in per_case.items():
+    for case_id, attempts in per_case.items():
+        runs = [r for r in attempts if "harness_error" not in r]
+        harness_errors = len(attempts) - len(runs)
+        if not runs:
+            case_stats[case_id] = {"trials": 0, "harness_errors": harness_errors}
+            continue
         f1s = [r["summary"]["mean_f1"] for r in runs]
         halls = [r["summary"]["hallucinations"] for r in runs]
         case_stats[case_id] = {
             "trials": len(runs),
+            "harness_errors": harness_errors,
             "mean_f1": round(statistics.mean(f1s), 3),
             "std_f1": round(statistics.stdev(f1s), 3) if len(f1s) > 1 else 0.0,
             "mean_hallucinations": round(statistics.mean(halls), 2),
@@ -404,20 +418,27 @@ def aggregate(trials: list) -> dict:
             ),
         }
 
-    all_f1 = [r["summary"]["mean_f1"] for t in trials for r in t]
-    all_hall = [r["summary"]["hallucinations"] for t in trials for r in t]
+    scored = [r for t in trials for r in t if "harness_error" not in r]
+    harness_errors = sum(len(t) for t in trials) - len(scored)
+    if not scored:
+        return {
+            "cases": case_stats,
+            "overall": {"scored_runs": 0, "harness_errors": harness_errors},
+        }
+    all_f1 = [r["summary"]["mean_f1"] for r in scored]
+    all_hall = [r["summary"]["hallucinations"] for r in scored]
     return {
         "cases": case_stats,
         "overall": {
+            "scored_runs": len(scored),
+            "harness_errors": harness_errors,
             "mean_f1": round(statistics.mean(all_f1), 3),
             "std_f1": round(statistics.stdev(all_f1), 3) if len(all_f1) > 1 else 0.0,
             "total_hallucinations": sum(all_hall),
             "hallucinations_per_trial": round(sum(all_hall) / len(trials), 2),
-            "total_schema_violations": sum(
-                len(r["schema_violations"]) for t in trials for r in t
-            ),
+            "total_schema_violations": sum(len(r["schema_violations"]) for r in scored),
             "total_atomicity_violations": sum(
-                len(r["scores"]["atomicity_violations"]) for t in trials for r in t
+                len(r["scores"]["atomicity_violations"]) for r in scored
             ),
         },
     }
@@ -464,6 +485,9 @@ def render_report(manifest: dict, agg: dict) -> str:
         "|---|---|---|---|---|---|",
     ]
     for case_id, s in agg["cases"].items():
+        if not s["trials"]:
+            lines.append(f"| {case_id} | not scored | — | — | — | — |")
+            continue
         edge = s["edge_recall"] if s["edge_recall"] is not None else "—"
         lines.append(
             f"| {case_id} | {s['mean_f1']:.3f}±{s['std_f1']:.3f} "
@@ -471,14 +495,24 @@ def render_report(manifest: dict, agg: dict) -> str:
             f"| {s['atomicity_violations']} | {edge} |"
         )
     o = agg["overall"]
-    lines += [
-        "",
-        f"**Overall:** F1 {o['mean_f1']:.3f}±{o['std_f1']:.3f} · "
-        f"{o['hallucinations_per_trial']} hallucinations/trial · "
-        f"{o['total_schema_violations']} schema violations · "
-        f"{o['total_atomicity_violations']} atomicity violations",
-        "",
-    ]
+    lines.append("")
+    if o["scored_runs"]:
+        lines.append(
+            f"**Overall:** F1 {o['mean_f1']:.3f}±{o['std_f1']:.3f} · "
+            f"{o['hallucinations_per_trial']} hallucinations/trial · "
+            f"{o['total_schema_violations']} schema violations · "
+            f"{o['total_atomicity_violations']} atomicity violations"
+        )
+    else:
+        lines.append("**Overall:** No case was scored.")
+    if o["harness_errors"]:
+        total = o["scored_runs"] + o["harness_errors"]
+        lines += [
+            "",
+            f"**Harness errors:** {o['harness_errors']} of {total} case runs failed to run "
+            "and are excluded from the scores above.",
+        ]
+    lines.append("")
     return "\n".join(lines)
 
 

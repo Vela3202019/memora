@@ -302,7 +302,11 @@ def score_case(case: dict, extracted: dict, verdict: dict) -> dict:
             u for u in verdict.get("unmatched_extracted", {}).get(kind, [])
             if u.get("classification") == "hallucinated"
         ]
-        precision = (n_extracted - len(hallucinated)) / n_extracted if n_extracted else 1.0
+        if n_extracted:
+            precision = (n_extracted - len(hallucinated)) / n_extracted
+        else:
+            # Extracting nothing is only correct when nothing was required.
+            precision = 0.0 if required else 1.0
         recall = min(matched, len(required)) / len(required) if required else 1.0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
         scores[kind] = {

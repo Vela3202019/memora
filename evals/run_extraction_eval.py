@@ -54,6 +54,14 @@ RESULTS_DIR = EVALS_DIR / "results"
 JUDGE_MODEL = os.getenv("EVAL_JUDGE_MODEL", "deepseek-chat")
 JUDGE_BASE_URL = os.getenv("EVAL_JUDGE_BASE_URL", "https://api.deepseek.com")
 
+EXTRACTOR_DEFAULT_MODELS = {
+    "openai-compatible": "gpt-5.2",
+    "claude-subscription": "claude-sonnet-5",
+    "anthropic": "claude-sonnet-5",
+    "gemini": "gemini-2.5-flash",
+}
+CLAUDE_BACKENDS = {"claude-subscription", "anthropic"}
+
 EXPERIENCE_TYPES = {
     "friendship", "family", "romantic", "career", "education",
     "health", "hobbies", "travel", "personal_growth",
@@ -516,12 +524,28 @@ def render_report(manifest: dict, agg: dict) -> str:
     return "\n".join(lines)
 
 
+def resolve_extractor_model(backend: str, model) -> str:
+    return model or EXTRACTOR_DEFAULT_MODELS[backend]
+
+
+def require_cross_family_judge(backend: str, judge: str) -> None:
+    if backend in CLAUDE_BACKENDS and judge == "claude-subscription":
+        raise SystemExit(
+            f"--backend {backend} and --judge claude-subscription are the same model "
+            "family; use --judge deepseek to grade a Claude extractor."
+        )
+
+
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Run memora extraction eval")
     parser.add_argument("--case", help="Run a single case by id")
     parser.add_argument("--trials", type=int, default=1)
     parser.add_argument("--prompt-version", default="v2", choices=sorted(PROMPT_VERSIONS))
-    parser.add_argument("--model", default="gpt-5.2", help="Extractor model")
+    parser.add_argument(
+        "--model",
+        help="Extractor model (default depends on --backend: gpt-5.2 for "
+             "openai-compatible, claude-sonnet-5 for claude-subscription)",
+    )
     parser.add_argument(
         "--backend",
         choices=["openai-compatible", "claude-subscription", "anthropic", "gemini"],
@@ -536,6 +560,8 @@ async def main() -> None:
              "'claude-subscription' judges via `claude -p` at no API cost.",
     )
     args = parser.parse_args()
+    args.model = resolve_extractor_model(args.backend, args.model)
+    require_cross_family_judge(args.backend, args.judge)
 
     dataset_raw = (EVALS_DIR / "dataset.json").read_text()
     cases = json.loads(dataset_raw)["cases"]

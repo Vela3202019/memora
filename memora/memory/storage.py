@@ -233,7 +233,6 @@ class MemoryStorage:
         user_id: str,
         content: str,
         truth_type: str,
-        confidence: float,
         first_synthesized: str,
         experience_ids: Optional[List[str]] = None
     ) -> str:
@@ -245,7 +244,6 @@ class MemoryStorage:
             user_id: User identifier
             content: The truth content (e.g., "I thrive in solitary exploration at night")
             truth_type: Type of truth (pattern, principle, value, etc.)
-            confidence: Confidence level (0.0-1.0)
             first_synthesized: When this truth was first synthesized (ISO date string)
             experience_ids: List of experience IDs this truth was distilled from
             
@@ -264,14 +262,12 @@ class MemoryStorage:
                 CREATE (t:Truth {
                     content: $content,
                     type: $truth_type,
-                    confidence: $confidence,
                     first_synthesized: date($first_synthesized),
                     createdAt: datetime(),
                     embedding: $embedding
                 })
                 CREATE (u)-[:GOT {
-                    discovered_at: date($first_synthesized),
-                    confidence: $confidence
+                    discovered_at: date($first_synthesized)
                 }]->(t)
                 RETURN elementId(t) as truth_id
                 """
@@ -281,7 +277,6 @@ class MemoryStorage:
                     userId=user_id,
                     content=content,
                     truth_type=truth_type,
-                    confidence=confidence,
                     first_synthesized=first_synthesized,
                     embedding=embedding,
                 )
@@ -400,7 +395,6 @@ class MemoryStorage:
                 user_id=user_id,
                 content=truth.get("content"),
                 truth_type=truth.get("type"),
-                confidence=truth.get("confidence"),
                 first_synthesized=truth.get("first_synthesized"),
                 experience_ids=[]  # Will link via relationships
             )

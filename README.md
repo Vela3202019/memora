@@ -154,7 +154,7 @@ docs/MEMORY_SCHEMA.md    # full Neo4j schema
 - **User** — `{userId}`
 - **Experience** — `{description, type, date, location, significance}`
 - **Emotion** — `{name, valence}`
-- **Truth** — `{content, type, confidence, first_synthesized}`
+- **Truth** — `{content, type, first_synthesized}`
 
 ### Relationships
 - `(User)-[:HAD]->(Experience)`
@@ -176,7 +176,7 @@ RETURN em.name, f.intensity, f.context, em.valence
 
 -- Truths / self-knowledge
 MATCH (u:User {userId: "me"})-[:GOT]->(t:Truth)
-RETURN t.content, t.type, t.confidence
+RETURN t.content, t.type
 ```
 
 ## Reference

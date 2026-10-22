@@ -172,8 +172,78 @@ A memory system that fabricates memories is worse than one that misses them. App
 When uncertain whether something qualifies: extract fewer, higher-confidence memories."""
 
 
+# V3 = V2 minus Truth confidence (everything stored is asserted, not scored)
+# plus a FACTS layer: persisting attributes/relationships as
+# subject-predicate-object triples. Built by transforming V2 so the certified
+# v2 text is never edited in place.
+_V3_BASE = (
+    DIARY_EXTRACTION_PROMPT_V2
+    .replace("- confidence: 0.0-1.0 how explicitly they stated this\n", "")
+    .replace(
+        '      "type": "pattern",\n      "confidence": 0.9\n',
+        '      "type": "pattern"\n',
+    )
+    .replace(
+        "When uncertain whether something qualifies: extract fewer, "
+        "higher-confidence memories.",
+        "When uncertain whether something qualifies: extract fewer, "
+        "clearly-supported memories.",
+    )
+)
+
+DIARY_EXTRACTION_PROMPT_V3 = _V3_BASE + """
+
+---
+
+## FACTS (persisting attributes and relationships)
+
+Besides experiences (events), also extract FACTS: attributes or relationships
+that remain true over a period of time, as opposed to something that happened.
+"Melanie adopted a dog last May" is an experience; "Melanie's dog is named
+Max" is a fact.
+
+Fields:
+- subject: canonical name of who/what the fact is about. NEVER a pronoun
+  ("she", "he", "they") — always the person's name. For the diary author,
+  use "user" unless their name is known.
+- predicate: concise snake_case attribute. Prefer this vocabulary when it
+  fits: has_pet, works_at, works_as, lives_in, has_family_member,
+  has_friend, has_partner, studies, owns, likes, dislikes, has_hobby,
+  has_health_condition, has_goal, is_named. Otherwise coin a short
+  snake_case predicate.
+- object: the value (concise noun phrase)
+- statement: one natural-language sentence stating the fact, using canonical
+  names ("Melanie has a dog named Max")
+- stated_by: canonical name of the speaker who stated it ("user" for the
+  diary author unless their name is known)
+
+Do NOT include dates in facts — the entry's date is attached automatically.
+Only extract facts actually stated; never invent or infer them. A fact and an
+experience can both come from the same sentence.
+
+Add to the OUTPUT JSON:
+
+  "facts": [
+    {
+      "subject": "Melanie",
+      "predicate": "has_pet",
+      "object": "dog named Max",
+      "statement": "Melanie has a dog named Max",
+      "stated_by": "Melanie"
+    }
+  ]
+
+And optionally, when a fact was learned during a specific extracted
+experience, add to "relationships":
+
+  "fact_learned_in_experience": [
+    {"fact_index": 0, "experience_index": 0}
+  ]"""
+
+
 PROMPT_VERSIONS = {
     "v1": DIARY_EXTRACTION_PROMPT,
     "v2": DIARY_EXTRACTION_PROMPT_V2,
+    "v3": DIARY_EXTRACTION_PROMPT_V3,
 }
 

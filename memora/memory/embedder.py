@@ -62,5 +62,13 @@ async def setup_vector_indexes() -> None:
                 `vector.similarity_function`: 'cosine'
             }}
         """)
+        await session.run("""
+            CREATE VECTOR INDEX fact_embedding IF NOT EXISTS
+            FOR (n:Fact) ON n.embedding
+            OPTIONS {indexConfig: {
+                `vector.dimensions`: 1536,
+                `vector.similarity_function`: 'cosine'
+            }}
+        """)
 
     logger.info("Vector indexes created (or already exist).")

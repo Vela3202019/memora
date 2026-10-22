@@ -155,6 +155,12 @@ docs/MEMORY_SCHEMA.md    # full Neo4j schema
 - **Experience** — `{description, type, date, location, significance}`
 - **Emotion** — `{name, valence}`
 - **Truth** — `{content, type, first_synthesized}`
+- **Fact** — `{subject, predicate, object, statement, stated_by, valid_from, valid_to}`.
+  A persisting attribute or relationship as a subject–predicate–object triple.
+  `valid_from` is the source document's date; `valid_to` is null while the fact is current.
+  For single-valued predicates (`lives_in`, `works_at`, `works_as`, `is_named`,
+  `has_partner`) a new value closes the user's previous current fact instead of
+  deleting it. Other predicates (e.g. `likes`, `has_friend`) accumulate.
 
 ### Relationships
 - `(User)-[:HAD]->(Experience)`
@@ -162,6 +168,9 @@ docs/MEMORY_SCHEMA.md    # full Neo4j schema
 - `(User)-[:GOT]->(Truth)`
 - `(Experience)-[:EVOKED]->(Emotion)`
 - `(Truth)-[:DISTILLED_FROM]->(Experience)`
+- `(User)-[:KNOWS]->(Fact)`
+- `(Fact)-[:LEARNED_IN]->(Experience)`
+- `(Fact)-[:SUPERSEDES]->(Fact)` — new value → the value it replaced (whose `valid_to` is set)
 
 ### Query examples
 
@@ -177,6 +186,11 @@ RETURN em.name, f.intensity, f.context, em.valence
 -- Truths / self-knowledge
 MATCH (u:User {userId: "me"})-[:GOT]->(t:Truth)
 RETURN t.content, t.type
+
+-- Facts that are true now
+MATCH (u:User {userId: "me"})-[:KNOWS]->(f:Fact)
+WHERE f.valid_to IS NULL
+RETURN f.subject, f.predicate, f.object, f.valid_from
 ```
 
 ## Reference

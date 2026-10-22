@@ -90,6 +90,7 @@ async def ingest(
                             "experiences": extracted.get("experiences", []),
                             "emotions": extracted.get("emotions", []),
                             "truths": extracted.get("truths", []),
+                            "facts": extracted.get("facts", []),
                             "relationships": extracted.get("relationships", {}),
                             "message_metadata": {"timestamp": doc.timestamp},
                         },

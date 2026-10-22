@@ -239,19 +239,19 @@ class MemoryStorage:
         """
         Create Truth node (PersonalSemanticMemory) and link to User and Experiences.
         Returns Neo4j elementId for the created truth.
-        
+
         Args:
             user_id: User identifier
             content: The truth content (e.g., "I thrive in solitary exploration at night")
             truth_type: Type of truth (pattern, principle, value, etc.)
             first_synthesized: When this truth was first synthesized (ISO date string)
             experience_ids: List of experience IDs this truth was distilled from
-            
+
         Returns:
             The Neo4j elementId of the created truth
         """
         session = await self.client.get_async_session()
-        
+
         embedding = await embed(content) if content else None
 
         try:
@@ -300,6 +300,118 @@ class MemoryStorage:
             logger.error(f"Error storing truth: {e}")
             raise
     
+    # Predicates where a new value replaces the old one (someone lives in ONE
+    # city). Multi-valued predicates (likes, has_pet, has_friend...) must NOT
+    # auto-supersede — a new liked thing doesn't end the old one.
+    SINGLE_VALUED_PREDICATES = {
+        "lives_in", "works_at", "works_as", "is_named", "has_partner",
+    }
+
+    async def store_fact(
+        self,
+        user_id: str,
+        subject: str,
+        predicate: str,
+        object: str,
+        statement: str,
+        stated_by: Optional[str],
+        valid_from: str,
+        experience_id: Optional[str] = None,
+    ) -> str:
+        """
+        Create a Fact node (persisting attribute/relationship as a
+        subject-predicate-object triple), bi-temporal:
+
+        - valid_from = the source document's date (never LLM-inferred)
+        - valid_to = null while current
+        - For single-valued predicates, an existing current fact with the same
+          (subject, predicate) but different object is closed
+          (valid_to = new fact's valid_from) and linked via
+          (new)-[:SUPERSEDES]->(old). Nothing is ever deleted.
+
+        Returns the Neo4j elementId of the created fact.
+        """
+        session = await self.client.get_async_session()
+        embedding = await embed(statement) if statement else None
+
+        try:
+            async with session:
+                result = await session.run(
+                    """
+                    MATCH (u:User {userId: $userId})
+                    CREATE (f:Fact {
+                        subject: $subject,
+                        predicate: $predicate,
+                        object: $object,
+                        statement: $statement,
+                        stated_by: $stated_by,
+                        valid_from: date($valid_from),
+                        valid_to: null,
+                        createdAt: datetime(),
+                        embedding: $embedding
+                    })
+                    CREATE (u)-[:KNOWS]->(f)
+                    RETURN elementId(f) as fact_id
+                    """,
+                    userId=user_id,
+                    subject=subject,
+                    predicate=predicate,
+                    object=object,
+                    statement=statement,
+                    stated_by=stated_by,
+                    valid_from=valid_from,
+                    embedding=embedding,
+                )
+                record = await result.single()
+                fact_id = record["fact_id"] if record else None
+
+                if predicate in self.SINGLE_VALUED_PREDICATES and fact_id:
+                    await session.run(
+                        """
+                        MATCH (new:Fact) WHERE elementId(new) = $fact_id
+                        MATCH (:User {userId: $userId})-[:KNOWS]->(old:Fact {subject: $subject, predicate: $predicate})
+                        WHERE old.valid_to IS NULL
+                          AND elementId(old) <> $fact_id
+                          AND old.object <> $object
+                        SET old.valid_to = date($valid_from)
+                        CREATE (new)-[:SUPERSEDES]->(old)
+                        """,
+                        fact_id=fact_id,
+                        userId=user_id,
+                        subject=subject,
+                        predicate=predicate,
+                        object=object,
+                        valid_from=valid_from,
+                    )
+
+                logger.debug(f"Stored fact: {statement[:50]}... (id: {fact_id})")
+
+        except Exception as e:
+            logger.error(f"Error storing fact: {e}")
+            raise
+
+        if experience_id and fact_id:
+            await self._link_fact_to_experience(fact_id, experience_id)
+        return fact_id
+
+    async def _link_fact_to_experience(self, fact_id: str, experience_id: str) -> None:
+        """Link a Fact to the Experience it was learned in."""
+        session = await self.client.get_async_session()
+
+        try:
+            async with session:
+                await session.run(
+                    """
+                    MATCH (f:Fact) WHERE elementId(f) = $fact_id
+                    MATCH (exp:Experience) WHERE elementId(exp) = $experience_id
+                    MERGE (f)-[:LEARNED_IN]->(exp)
+                    """,
+                    fact_id=fact_id,
+                    experience_id=experience_id,
+                )
+        except Exception as e:
+            logger.debug(f"Could not link fact to experience: {e}")
+
     async def _link_truth_to_experience(
         self,
         truth_id: str,
@@ -399,7 +511,24 @@ class MemoryStorage:
                 experience_ids=[]  # Will link via relationships
             )
             truth_ids.append(truth_id)
-        
+
+        # Store facts and collect their IDs (index -> ID mapping).
+        # valid_from is the document's date, never an LLM-inferred one.
+        fact_ids = []
+        facts = extracted_data.get("facts", [])
+        for fact in facts:
+            fact_id = await self.store_fact(
+                user_id=user_id,
+                subject=fact.get("subject"),
+                predicate=fact.get("predicate"),
+                object=fact.get("object"),
+                statement=fact.get("statement"),
+                stated_by=fact.get("stated_by"),
+                valid_from=timestamp[:10],
+                experience_id=None,  # Will link via relationships
+            )
+            fact_ids.append(fact_id)
+
         # Process relationships by index mapping
         relationships = extracted_data.get("relationships", {})
         
@@ -442,6 +571,18 @@ class MemoryStorage:
                             synthesis_date,
                             weight
                         )
-        
+
+        # Link facts to experiences (fact_learned_in_experience)
+        for rel in relationships.get("fact_learned_in_experience", []):
+            fact_idx = rel.get("fact_index")
+            exp_idx = rel.get("experience_index")
+
+            if fact_idx is not None and exp_idx is not None:
+                if 0 <= fact_idx < len(fact_ids) and 0 <= exp_idx < len(experience_ids):
+                    await self._link_fact_to_experience(
+                        fact_ids[fact_idx],
+                        experience_ids[exp_idx]
+                    )
+
         logger.info(f"Stored all extracted data for message at {timestamp}")
 

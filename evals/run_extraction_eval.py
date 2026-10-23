@@ -564,7 +564,7 @@ async def main() -> None:
     parser = argparse.ArgumentParser(description="Run memora extraction eval")
     parser.add_argument("--case", help="Run a single case by id")
     parser.add_argument("--trials", type=int, default=1)
-    parser.add_argument("--prompt-version", default="v2", choices=sorted(PROMPT_VERSIONS))
+    parser.add_argument("--prompt-version", default="v3", choices=sorted(PROMPT_VERSIONS))
     parser.add_argument(
         "--model",
         help="Extractor model (default depends on --backend: gpt-5.2 for "

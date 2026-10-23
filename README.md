@@ -15,6 +15,12 @@ hallucinations −78%** (23 → 5 per trial). The eval's regression guards also 
 cost: v2 mildly over-suppresses own-past recollections — the next iteration target.
 See [`evals/results/compare-v1-vs-v2.md`](evals/results/compare-v1-vs-v2.md).
 
+The default prompt is now **v3**: v2 without truth confidence, plus [facts](#nodes).
+On one setup (Claude Sonnet 5 extracting, Claude Opus 5.5 judging, 3 trials × 14 cases),
+v2 → v3 mean F1 went 0.921 → 0.934. See
+[`evals/results/run-20261022-110207-v2.md`](evals/results/run-20261022-110207-v2.md) and
+[`evals/results/run-20261022-110540-v3.md`](evals/results/run-20261022-110540-v3.md).
+
 ## The three memory types
 
 Memora models memory the way human memory actually stratifies — and keeps the layers as distinct node types so you can query each on its own terms.

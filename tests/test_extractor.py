@@ -35,6 +35,6 @@ def test_extract_from_document_routes_through_backend():
     assert result["source_metadata"]["doc_id"] == "/x/a.md"
     assert result["source_metadata"]["timestamp"] == "2026-07-01T09:00:00"
     (system, user) = backend.seen[0]
-    assert system == PROMPT_VERSIONS["v2"]
+    assert system == PROMPT_VERSIONS["v3"]
     assert "I went hiking." in user
     assert "2026-07-01" in user

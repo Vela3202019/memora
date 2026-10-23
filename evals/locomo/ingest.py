@@ -19,7 +19,6 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
 from memora.llm.base import LLMBackend

@@ -147,10 +147,10 @@ memora/
 ├── llm/                 # backend layer (claude-cli, openai-compat, anthropic, gemini)
 ├── memory/              # Neo4j client, storage, embedder, retriever, extractor
 ├── prompts/             # shared core extraction prompt
-├── agents/              # chat agent
+├── agents/              # chat agent, grounded QA (ask)
 ├── mcp/server.py        # MCP stdio server
 └── resources/           # bundled docker-compose.yml
-evals/                   # extraction eval suite (see evals/README.md)
+evals/                   # extraction eval suite (see evals/README.md), LoCoMo QA eval (evals/locomo/)
 docs/MEMORY_SCHEMA.md    # full Neo4j schema
 ```
 

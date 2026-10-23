@@ -113,6 +113,8 @@ A persisting attribute or relationship stored as a subject–predicate–object 
 
 For single-valued predicates (`lives_in`, `works_at`, `works_as`, `is_named`, `has_partner`) a new value closes the user's previous current fact instead of deleting it. Other predicates (e.g. `likes`, `has_friend`) accumulate. Facts are never deleted.
 
+Restating a current fact creates no new node. If the restatement is dated earlier, the existing fact's `valid_from` moves back to that date and the fact it supersedes is re-closed there (never below that fact's own `valid_from`).
+
 **Example:**
 ```cypher
 (f:Fact {

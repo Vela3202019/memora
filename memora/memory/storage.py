@@ -18,7 +18,7 @@ def dedupe_facts(
 
     - repeats within one extraction collapse into the first occurrence
     - facts matching one of the user's current facts (`current`) are dropped,
-      so the existing node and its earlier valid_from are kept
+      so the existing node is kept
 
     Returns (facts, links) with each link's fact_index remapped to the kept
     list; links to dropped facts are removed.
@@ -367,115 +367,175 @@ class MemoryStorage:
           at the earliest such fact's valid_from, linked via
           (newer)-[:SUPERSEDES]->(new). Nothing is ever deleted.
 
+        The create, current-fact read and closes run in one transaction.
         Returns the Neo4j elementId of the created fact.
         """
-        embedding = await embed(statement) if statement else None
-        fact_id = await self._create_fact(
-            user_id, subject, predicate, object, statement, stated_by,
-            valid_from, embedding,
-        )
+        fact = {
+            "subject": subject, "predicate": predicate, "object": object,
+            "statement": statement, "stated_by": stated_by,
+            "embedding": await embed(statement) if statement else None,
+        }
+        session = await self.client.get_async_session()
 
-        if predicate in self.SINGLE_VALUED_PREDICATES and fact_id:
-            newer = []
-            for old in await self._current_facts(user_id):
-                if (old["id"] == fact_id or old["subject"] != subject
-                        or old["predicate"] != predicate or old["object"] == object):
-                    continue
-                if old["valid_from"] <= valid_from:
-                    await self._close_fact(old["id"], valid_from, fact_id)
-                else:
-                    newer.append(old)
-            if newer:
-                successor = min(newer, key=lambda f: f["valid_from"])
-                await self._close_fact(fact_id, successor["valid_from"], successor["id"])
+        try:
+            async with session:
+                fact_id = await session.execute_write(
+                    self._write_fact, user_id, fact, valid_from
+                )
+        except Exception as e:
+            logger.error(f"Error storing fact: {e}")
+            raise
 
         logger.debug(f"Stored fact: {statement[:50]}... (id: {fact_id})")
         if experience_id and fact_id:
             await self._link_fact_to_experience(fact_id, experience_id)
         return fact_id
 
-    async def _create_fact(
+    async def _write_facts(
         self,
+        tx,
         user_id: str,
-        subject: str,
-        predicate: str,
-        object: str,
-        statement: str,
-        stated_by: Optional[str],
+        facts: List[Dict[str, Any]],
+        links: List[Dict[str, Any]],
         valid_from: str,
-        embedding: Optional[List[float]],
+    ) -> tuple:
+        """
+        Transaction function: dedupe one extraction's facts against the
+        user's current facts and store the rest. A duplicate of a current fact
+        dated earlier than it moves that fact's valid_from back to this date.
+        Returns (fact_ids, links) with links remapped to fact_ids.
+        """
+        current = {
+            (f["subject"], f["predicate"], f["object"]): f
+            for f in await self._current_facts(tx, user_id)
+        }
+        for fact in facts:
+            existing = current.get((fact.get("subject"), fact.get("predicate"), fact.get("object")))
+            if existing and valid_from < existing["valid_from"]:
+                await self._backdate_fact(tx, existing["id"], valid_from)
+                existing["valid_from"] = valid_from
+        facts, links = dedupe_facts(facts, links, set(current))
+        fact_ids = [await self._write_fact(tx, user_id, fact, valid_from) for fact in facts]
+        return fact_ids, links
+
+    async def _write_fact(
+        self, tx, user_id: str, fact: Dict[str, Any], valid_from: str
+    ) -> Optional[str]:
+        """Transaction function: create one fact and apply supersession."""
+        subject, predicate, object = fact.get("subject"), fact.get("predicate"), fact.get("object")
+        fact_id = await self._create_fact(tx, user_id, fact, valid_from)
+
+        if predicate in self.SINGLE_VALUED_PREDICATES and fact_id:
+            newer = []
+            for old in await self._current_facts(tx, user_id):
+                if (old["id"] == fact_id or old["subject"] != subject
+                        or old["predicate"] != predicate or old["object"] == object):
+                    continue
+                if old["valid_from"] <= valid_from:
+                    await self._close_fact(tx, old["id"], valid_from, fact_id)
+                else:
+                    newer.append(old)
+            if newer:
+                successor = min(newer, key=lambda f: f["valid_from"])
+                await self._close_fact(tx, fact_id, successor["valid_from"], successor["id"])
+        return fact_id
+
+    async def _backdate_fact(self, tx, fact_id: str, valid_from: str) -> None:
+        """
+        Move a fact's valid_from back and re-close the facts it SUPERSEDES at
+        that date, never below a predecessor's own valid_from.
+        """
+        await self._set_valid_from(tx, fact_id, valid_from)
+        for predecessor in await self._predecessors(tx, fact_id):
+            await self._set_valid_to(
+                tx, predecessor["id"], max(valid_from, predecessor["valid_from"])
+            )
+
+    async def _create_fact(
+        self, tx, user_id: str, fact: Dict[str, Any], valid_from: str
     ) -> Optional[str]:
         """Create a current Fact node known by the user; return its elementId."""
-        session = await self.client.get_async_session()
+        result = await tx.run(
+            """
+            MATCH (u:User {userId: $userId})
+            CREATE (f:Fact {
+                subject: $subject,
+                predicate: $predicate,
+                object: $object,
+                statement: $statement,
+                stated_by: $stated_by,
+                valid_from: date($valid_from),
+                valid_to: null,
+                createdAt: datetime(),
+                embedding: $embedding
+            })
+            CREATE (u)-[:KNOWS]->(f)
+            RETURN elementId(f) as fact_id
+            """,
+            userId=user_id,
+            subject=fact.get("subject"),
+            predicate=fact.get("predicate"),
+            object=fact.get("object"),
+            statement=fact.get("statement"),
+            stated_by=fact.get("stated_by"),
+            valid_from=valid_from,
+            embedding=fact.get("embedding"),
+        )
+        record = await result.single()
+        return record["fact_id"] if record else None
 
-        try:
-            async with session:
-                result = await session.run(
-                    """
-                    MATCH (u:User {userId: $userId})
-                    CREATE (f:Fact {
-                        subject: $subject,
-                        predicate: $predicate,
-                        object: $object,
-                        statement: $statement,
-                        stated_by: $stated_by,
-                        valid_from: date($valid_from),
-                        valid_to: null,
-                        createdAt: datetime(),
-                        embedding: $embedding
-                    })
-                    CREATE (u)-[:KNOWS]->(f)
-                    RETURN elementId(f) as fact_id
-                    """,
-                    userId=user_id,
-                    subject=subject,
-                    predicate=predicate,
-                    object=object,
-                    statement=statement,
-                    stated_by=stated_by,
-                    valid_from=valid_from,
-                    embedding=embedding,
-                )
-                record = await result.single()
-                return record["fact_id"] if record else None
-
-        except Exception as e:
-            logger.error(f"Error storing fact: {e}")
-            raise
-
-    async def _current_facts(self, user_id: str) -> List[Dict[str, Any]]:
+    async def _current_facts(self, tx, user_id: str) -> List[Dict[str, Any]]:
         """The user's current facts (valid_to IS NULL), valid_from as an ISO date string."""
-        session = await self.client.get_async_session()
+        result = await tx.run(
+            """
+            MATCH (:User {userId: $userId})-[:KNOWS]->(f:Fact)
+            WHERE f.valid_to IS NULL
+            RETURN elementId(f) AS id, f.subject AS subject,
+                   f.predicate AS predicate, f.object AS object,
+                   toString(f.valid_from) AS valid_from
+            """,
+            userId=user_id,
+        )
+        return [dict(r) for r in await result.data()]
 
-        async with session:
-            result = await session.run(
-                """
-                MATCH (:User {userId: $userId})-[:KNOWS]->(f:Fact)
-                WHERE f.valid_to IS NULL
-                RETURN elementId(f) AS id, f.subject AS subject,
-                       f.predicate AS predicate, f.object AS object,
-                       toString(f.valid_from) AS valid_from
-                """,
-                userId=user_id,
-            )
-            return [dict(r) for r in await result.data()]
+    async def _predecessors(self, tx, fact_id: str) -> List[Dict[str, Any]]:
+        """Facts this fact SUPERSEDES, valid_from as an ISO date string."""
+        result = await tx.run(
+            """
+            MATCH (f:Fact)-[:SUPERSEDES]->(old:Fact) WHERE elementId(f) = $fact_id
+            RETURN elementId(old) AS id, toString(old.valid_from) AS valid_from
+            """,
+            fact_id=fact_id,
+        )
+        return [dict(r) for r in await result.data()]
 
-    async def _close_fact(self, fact_id: str, valid_to: str, superseded_by: str) -> None:
+    async def _close_fact(self, tx, fact_id: str, valid_to: str, superseded_by: str) -> None:
         """Set a fact's valid_to and link (superseded_by)-[:SUPERSEDES]->(fact)."""
-        session = await self.client.get_async_session()
+        await tx.run(
+            """
+            MATCH (old:Fact) WHERE elementId(old) = $fact_id
+            MATCH (new:Fact) WHERE elementId(new) = $superseded_by
+            SET old.valid_to = date($valid_to)
+            CREATE (new)-[:SUPERSEDES]->(old)
+            """,
+            fact_id=fact_id,
+            valid_to=valid_to,
+            superseded_by=superseded_by,
+        )
 
-        async with session:
-            await session.run(
-                """
-                MATCH (old:Fact) WHERE elementId(old) = $fact_id
-                MATCH (new:Fact) WHERE elementId(new) = $superseded_by
-                SET old.valid_to = date($valid_to)
-                CREATE (new)-[:SUPERSEDES]->(old)
-                """,
-                fact_id=fact_id,
-                valid_to=valid_to,
-                superseded_by=superseded_by,
-            )
+    async def _set_valid_from(self, tx, fact_id: str, valid_from: str) -> None:
+        await tx.run(
+            "MATCH (f:Fact) WHERE elementId(f) = $fact_id SET f.valid_from = date($valid_from)",
+            fact_id=fact_id,
+            valid_from=valid_from,
+        )
+
+    async def _set_valid_to(self, tx, fact_id: str, valid_to: str) -> None:
+        await tx.run(
+            "MATCH (f:Fact) WHERE elementId(f) = $fact_id SET f.valid_to = date($valid_to)",
+            fact_id=fact_id,
+            valid_to=valid_to,
+        )
 
     async def _link_fact_to_experience(self, fact_id: str, experience_id: str) -> None:
         """Link a Fact to the Experience it was learned in."""
@@ -597,28 +657,19 @@ class MemoryStorage:
 
         # Store facts and collect their IDs (index -> ID mapping).
         # valid_from is the document's date, never an LLM-inferred one.
-        current = {
-            (f["subject"], f["predicate"], f["object"])
-            for f in await self._current_facts(user_id)
-        }
-        facts, fact_links = dedupe_facts(
-            extracted_data.get("facts", []),
-            extracted_data.get("relationships", {}).get("fact_learned_in_experience", []),
-            current,
-        )
-        fact_ids = []
-        for fact in facts:
-            fact_id = await self.store_fact(
-                user_id=user_id,
-                subject=fact.get("subject"),
-                predicate=fact.get("predicate"),
-                object=fact.get("object"),
-                statement=fact.get("statement"),
-                stated_by=fact.get("stated_by"),
-                valid_from=timestamp[:10],
-                experience_id=None,  # Will link via relationships
+        facts = [
+            {**fact, "embedding": await embed(fact["statement"]) if fact.get("statement") else None}
+            for fact in extracted_data.get("facts", [])
+        ]
+        session = await self.client.get_async_session()
+        async with session:
+            fact_ids, fact_links = await session.execute_write(
+                self._write_facts,
+                user_id,
+                facts,
+                extracted_data.get("relationships", {}).get("fact_learned_in_experience", []),
+                timestamp[:10],
             )
-            fact_ids.append(fact_id)
 
         # Process relationships by index mapping
         relationships = extracted_data.get("relationships", {})

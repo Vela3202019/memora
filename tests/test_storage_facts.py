@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import itertools
 
 import pytest
@@ -7,15 +8,40 @@ import memora.memory.storage as storage_module
 from memora.memory.storage import MemoryStorage, dedupe_facts
 
 
+class FakeSession:
+    """Session whose write transactions roll the in-memory graph back on error."""
+
+    def __init__(self, graph):
+        self.graph = graph
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def execute_write(self, work, *args):
+        snapshot = copy.deepcopy((self.graph.facts, self.graph.supersedes))
+        try:
+            return await work(None, *args)
+        except Exception:
+            self.graph.facts, self.graph.supersedes = snapshot
+            raise
+
+
 class InMemoryGraphStorage(MemoryStorage):
     """MemoryStorage whose graph writes/reads go to in-memory dicts."""
 
     def __init__(self):
-        super().__init__()
+        self.client = self
         self.ids = itertools.count()
         self.facts = {}        # id -> fact properties (incl. userId)
         self.supersedes = []   # (new_id, old_id)
         self.learned_in = []   # (fact_id, experience_id)
+        self.fail_close = False
+
+    async def get_async_session(self):
+        return FakeSession(self)
 
     async def store_user(self, user_id, properties=None):
         pass
@@ -23,25 +49,37 @@ class InMemoryGraphStorage(MemoryStorage):
     async def store_experience(self, user_id, description, timestamp, **kwargs):
         return f"exp-{next(self.ids)}"
 
-    async def _create_fact(self, user_id, subject, predicate, object, statement,
-                           stated_by, valid_from, embedding):
+    async def _create_fact(self, tx, user_id, fact, valid_from):
         fact_id = f"fact-{next(self.ids)}"
         self.facts[fact_id] = {
-            "userId": user_id, "subject": subject, "predicate": predicate,
-            "object": object, "valid_from": valid_from, "valid_to": None,
+            "userId": user_id, "subject": fact["subject"],
+            "predicate": fact["predicate"], "object": fact["object"],
+            "valid_from": valid_from, "valid_to": None,
         }
         return fact_id
 
-    async def _current_facts(self, user_id):
+    async def _current_facts(self, tx, user_id):
         return [
             {"id": i, **{k: f[k] for k in ("subject", "predicate", "object", "valid_from")}}
             for i, f in self.facts.items()
             if f["userId"] == user_id and f["valid_to"] is None
         ]
 
-    async def _close_fact(self, fact_id, valid_to, superseded_by):
+    async def _predecessors(self, tx, fact_id):
+        return [{"id": old, "valid_from": self.facts[old]["valid_from"]}
+                for new, old in self.supersedes if new == fact_id]
+
+    async def _close_fact(self, tx, fact_id, valid_to, superseded_by):
+        if self.fail_close:
+            raise RuntimeError("transient Neo4j error")
         self.facts[fact_id]["valid_to"] = valid_to
         self.supersedes.append((superseded_by, fact_id))
+
+    async def _set_valid_from(self, tx, fact_id, valid_from):
+        self.facts[fact_id]["valid_from"] = valid_from
+
+    async def _set_valid_to(self, tx, fact_id, valid_to):
+        self.facts[fact_id]["valid_to"] = valid_to
 
     async def _link_fact_to_experience(self, fact_id, experience_id):
         self.learned_in.append((fact_id, experience_id))
@@ -56,7 +94,6 @@ def graph(monkeypatch):
     async def fake_embed(text):
         return [0.0]
 
-    monkeypatch.setattr(storage_module, "get_neo4j_client", lambda: None)
     monkeypatch.setattr(storage_module, "embed", fake_embed)
     return InMemoryGraphStorage()
 
@@ -139,6 +176,44 @@ def test_restated_fact_keeps_one_current_fact_with_earliest_date(graph):
     assert len(graph.supersedes) == 1
     current = list(graph.current("lives_in").values())
     assert [(f["object"], f["valid_from"]) for f in current] == [("Boston", "2026-05-10")]
+
+
+def test_earlier_restatement_backdates_current_fact_and_recloses_predecessor(graph):
+    ingest_entry(graph, [lives_in("Boston")], "2025-10-01")
+    ingest_entry(graph, [lives_in("Seattle")], "2026-03-10")
+    ingest_entry(graph, [lives_in("Seattle")], "2026-01-10")
+
+    current = list(graph.current("lives_in").values())
+    assert [(f["object"], f["valid_from"]) for f in current] == [("Seattle", "2026-01-10")]
+    boston = next(f for f in graph.facts.values() if f["object"] == "Boston")
+    assert boston["valid_to"] == "2026-01-10"
+    assert len(graph.facts) == 2
+
+
+def test_backdating_never_closes_predecessor_before_its_own_start(graph):
+    ingest_entry(graph, [lives_in("Boston")], "2026-02-01")
+    ingest_entry(graph, [lives_in("Seattle")], "2026-03-10")
+    ingest_entry(graph, [lives_in("Seattle")], "2026-01-10")
+
+    boston = next(f for f in graph.facts.values() if f["object"] == "Boston")
+    assert boston["valid_to"] == "2026-02-01"
+    for fact in graph.facts.values():
+        assert fact["valid_to"] is None or fact["valid_to"] >= fact["valid_from"]
+
+
+def test_failed_close_leaves_no_partial_fact_write(graph):
+    ingest_entry(graph, [lives_in("Boston")], "2026-01-10")
+    graph.fail_close = True
+
+    with pytest.raises(RuntimeError):
+        ingest_entry(graph, [lives_in("Seattle")], "2026-06-01")
+
+    graph.fail_close = False
+    ingest_entry(graph, [lives_in("Seattle")], "2026-06-01")
+
+    current = list(graph.current("lives_in").values())
+    assert [(f["object"], f["valid_from"]) for f in current] == [("Seattle", "2026-06-01")]
+    assert len(graph.supersedes) == 1
 
 
 def test_store_extracted_data_links_facts_to_experiences(graph):

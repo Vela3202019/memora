@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import asyncio
 import logging
+import pytest
 from dotenv import load_dotenv
 from memora.memory.client import get_neo4j_client, Neo4jClient
 
@@ -23,12 +24,17 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+pytestmark = pytest.mark.skipif(
+    not all(os.getenv(v) for v in ("NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD")),
+    reason="Neo4j not configured: set NEO4J_URI, NEO4J_USERNAME and NEO4J_PASSWORD (env or .env)",
+)
+
 # Reset singleton to ensure fresh credentials are loaded
 import memora.memory.client as client_module
 client_module._neo4j_client = None
 
 
-async def test_async_connection():
+async def check_async_connection():
     """Test asynchronous Neo4j connection."""
     logger.info("Testing async Neo4j connection...")
     client = get_neo4j_client()
@@ -51,7 +57,7 @@ async def test_async_connection():
         await client.close_async()
 
 
-def test_sync_connection():
+def check_sync_connection():
     """Test synchronous Neo4j connection."""
     logger.info("Testing sync Neo4j connection...")
     client = get_neo4j_client()
@@ -71,6 +77,16 @@ def test_sync_connection():
         return False
     finally:
         client.close()
+
+
+def test_sync_connection():
+    assert check_sync_connection()
+
+
+@pytest.mark.asyncio
+async def test_async_connection():
+    client_module._neo4j_client = None
+    assert await check_async_connection()
 
 
 if __name__ == "__main__":
@@ -94,13 +110,13 @@ if __name__ == "__main__":
     logger.info(f"Password length: {len(password) if password else 0} characters")
     
     # Test sync connection
-    sync_success = test_sync_connection()
+    sync_success = check_sync_connection()
     
     # Reset singleton again before async test
     client_module._neo4j_client = None
     
     # Test async connection
-    async_success = asyncio.run(test_async_connection())
+    async_success = asyncio.run(check_async_connection())
     
     if sync_success and async_success:
         logger.info("🎉 All connection tests passed! Neo4j is ready to use.")

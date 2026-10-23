@@ -24,6 +24,10 @@ def main() -> None:
     b = json.loads(Path(args.candidate).read_text())
     la, lb = label(a["manifest"]), label(b["manifest"])
 
+    for path, run in ((args.baseline, a), (args.candidate, b)):
+        if "mean_f1" not in run["aggregate"]["overall"]:
+            raise SystemExit(f"{path} has no scored cases - nothing to compare")
+
     if a["manifest"]["dataset_sha256"] != b["manifest"]["dataset_sha256"]:
         print("WARNING: runs used different dataset versions - deltas are not comparable\n")
 
@@ -39,7 +43,7 @@ def main() -> None:
     ]
     for case_id, sa in a["aggregate"]["cases"].items():
         sb = b["aggregate"]["cases"].get(case_id)
-        if not sb:
+        if not sb or "mean_f1" not in sa or "mean_f1" not in sb:
             continue
         delta = sb["mean_f1"] - sa["mean_f1"]
         arrow = "▲" if delta > 0.005 else ("▼" if delta < -0.005 else "·")

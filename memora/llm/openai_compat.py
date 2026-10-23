@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Optional
 
@@ -30,3 +31,38 @@ class OpenAICompatBackend(LLMBackend):
             temperature=0.1,
         )
         return extract_json_block(response.choices[0].message.content)
+
+    async def complete_tools(self, system: str, user: str,
+                             tools: list, dispatch, max_rounds: int = 8) -> str:
+        oa_tools = [{"type": "function", "function": t} for t in tools]
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
+        for _ in range(max_rounds):
+            response = await self._client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=oa_tools,
+                tool_choice="auto",
+                temperature=0.0,
+            )
+            msg = response.choices[0].message
+            if not msg.tool_calls:
+                return msg.content or ""
+            messages.append({
+                "role": "assistant",
+                "content": msg.content,
+                "tool_calls": [
+                    {"id": tc.id, "type": "function",
+                     "function": {"name": tc.function.name,
+                                  "arguments": tc.function.arguments}}
+                    for tc in msg.tool_calls
+                ],
+            })
+            for tc in msg.tool_calls:
+                result = await dispatch(tc.function.name,
+                                        json.loads(tc.function.arguments))
+                messages.append({"role": "tool", "tool_call_id": tc.id,
+                                 "content": result})
+        raise RuntimeError(f"tool loop exceeded {max_rounds} rounds")

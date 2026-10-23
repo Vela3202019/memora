@@ -19,11 +19,12 @@ Design principles:
     so results are reproducible and comparable across prompt versions.
 
 Usage (from repo root):
-    python -m evals.run_extraction_eval --prompt-version v2 --trials 3
+    python -m evals.run_extraction_eval --trials 3
     python -m evals.run_extraction_eval --case dream-boundary
     python -m evals.compare_runs evals/results/run-A.json evals/results/run-B.json
 
-Requires OPENAI_API_KEY (extractor) and DEEPSEEK_API_KEY (judge). No Neo4j needed.
+Requires OPENAI_API_KEY (extractor) and DEEPSEEK_API_KEY (judge), unless
+--judge claude-subscription is used. No Neo4j needed.
 """
 
 import argparse

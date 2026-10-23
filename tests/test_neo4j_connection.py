@@ -24,6 +24,11 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+pytestmark = pytest.mark.skipif(
+    not all(os.getenv(v) for v in ("NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD")),
+    reason="Neo4j not configured: set NEO4J_URI, NEO4J_USERNAME and NEO4J_PASSWORD (env or .env)",
+)
+
 # Reset singleton to ensure fresh credentials are loaded
 import memora.memory.client as client_module
 client_module._neo4j_client = None

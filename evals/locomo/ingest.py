@@ -2,17 +2,26 @@
 
 Extraction is the expensive stage (~300 turns x 10 conversations of LLM
 calls), and the eval wipes Neo4j between conversations, so raw extraction
-JSON is cached per (conversation, prompt_version). Re-runs with an unchanged
-extraction config rebuild the graph from cache with zero LLM calls.
+JSON is cached per (conversation, prompt_version, extractor model). Re-runs
+with an unchanged extraction config rebuild the graph from cache with zero LLM
+calls.
+
+The wipe only ever runs against a separate eval-only Neo4j: use_eval_neo4j()
+points this process (and the MCP servers ask() spawns) at
+MEMORA_EVAL_NEO4J_URI, and wipe_graph() refuses any other database or one that
+holds users other than the eval user.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
 from memora.llm.base import LLMBackend
 from memora.memory.diary_extractor import extract_from_document
 from memora.sources.base import SourceDocument
@@ -24,15 +33,17 @@ logger = logging.getLogger(__name__)
 CACHE_DIR = Path(__file__).parent / "cache"
 
 
-def _cache_path(conv_id: str, prompt_version: str,
+def _cache_path(conv_id: str, prompt_version: str, model_id: str,
                 cache_dir: Path = CACHE_DIR) -> Path:
-    return cache_dir / f"{conv_id}-{prompt_version}.json"
+    model_tag = re.sub(r"[^A-Za-z0-9._-]", "_", model_id)
+    return cache_dir / f"{conv_id}-{prompt_version}-{model_tag}.json"
 
 
 async def extract_conversation(
     conv: LocomoConversation,
     backend: LLMBackend,
-    prompt_version: str = "v2",
+    model_id: str,
+    prompt_version: str = "v3",
     cache_dir: Path = CACHE_DIR,
 ) -> list:
     """Extract all sessions of one conversation; returns list of extraction dicts.
@@ -40,7 +51,7 @@ async def extract_conversation(
     Serves from cache when present; otherwise extracts and writes the cache
     BEFORE any storage happens, so a mid-run crash never loses paid LLM work.
     """
-    cache_file = _cache_path(conv.conv_id, prompt_version, cache_dir)
+    cache_file = _cache_path(conv.conv_id, prompt_version, model_id, cache_dir)
     if cache_file.exists():
         logger.info("cache hit: %s", cache_file.name)
         return json.loads(cache_file.read_text())
@@ -78,13 +89,53 @@ async def extract_conversation(
     return extractions
 
 
-async def wipe_graph() -> None:
-    """Delete ALL nodes and relationships. Eval graphs only — never user data."""
+def use_eval_neo4j() -> None:
+    """Point every Neo4j client in this process at the eval-only instance.
+
+    Must run before any Neo4j client is created. Child processes (the memora
+    MCP server ask() spawns) inherit the overridden environment.
+    """
+    load_dotenv()
+    eval_uri = os.getenv("MEMORA_EVAL_NEO4J_URI")
+    if not eval_uri:
+        raise RuntimeError(
+            "MEMORA_EVAL_NEO4J_URI is required: the LoCoMo eval wipes its "
+            "graph, so it only runs against a separate eval-only Neo4j"
+        )
+    if eval_uri == os.getenv("NEO4J_URI"):
+        raise RuntimeError(
+            "MEMORA_EVAL_NEO4J_URI equals NEO4J_URI; refusing to wipe the "
+            "Neo4j that holds your memories"
+        )
+    os.environ["NEO4J_URI"] = eval_uri
+    os.environ["NEO4J_USERNAME"] = os.environ["MEMORA_EVAL_NEO4J_USERNAME"]
+    os.environ["NEO4J_PASSWORD"] = os.environ["MEMORA_EVAL_NEO4J_PASSWORD"]
+
+
+async def wipe_graph(user_id: str) -> None:
+    """Delete ALL nodes and relationships of the eval-only graph."""
     from memora.memory.client import get_neo4j_client
 
     client = get_neo4j_client()
+    eval_uri = os.getenv("MEMORA_EVAL_NEO4J_URI")
+    if not eval_uri or client.uri != eval_uri:
+        raise RuntimeError(
+            f"refusing to wipe {client.uri}: not the eval-only Neo4j "
+            "(MEMORA_EVAL_NEO4J_URI); call use_eval_neo4j() first"
+        )
     session = await client.get_async_session()
     async with session:
+        result = await session.run(
+            "MATCH (u:User) WHERE u.userId IS NULL OR u.userId <> $userId "
+            "RETURN u.userId AS userId LIMIT 1",
+            userId=user_id,
+        )
+        foreign = await result.single()
+        if foreign is not None:
+            raise RuntimeError(
+                f"refusing to wipe {client.uri}: it holds User "
+                f"{foreign['userId']!r}, not only the eval user {user_id!r}"
+            )
         await session.run("MATCH (n) DETACH DELETE n")
 
 
@@ -102,6 +153,7 @@ async def store_extractions(
                 "experiences": extracted.get("experiences", []),
                 "emotions": extracted.get("emotions", []),
                 "truths": extracted.get("truths", []),
+                "facts": extracted.get("facts", []),
                 "relationships": extracted.get("relationships", {}),
                 "message_metadata": {"timestamp": meta.get("timestamp")},
             },
@@ -112,13 +164,14 @@ async def store_extractions(
 async def ingest_conversation(
     conv: LocomoConversation,
     backend: LLMBackend,
-    prompt_version: str = "v2",
+    model_id: str,
+    prompt_version: str = "v3",
     user_id: str = "locomo",
     cache_dir: Path = CACHE_DIR,
 ) -> None:
     """Full per-conversation ingest: extract (cached) -> wipe graph -> store."""
     extractions = await extract_conversation(
-        conv, backend, prompt_version, cache_dir
+        conv, backend, model_id, prompt_version, cache_dir
     )
-    await wipe_graph()
+    await wipe_graph(user_id)
     await store_extractions(extractions, user_id)

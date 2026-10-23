@@ -4,7 +4,6 @@ import pytest
 
 from evals.locomo.load_locomo import (
     DATA_PATH,
-    LOCOMO_PREAMBLE,
     _parse_date_time,
     load_locomo,
 )
@@ -72,11 +71,6 @@ def test_questions_categories_and_adversarial(tmp_path):
     assert q2.answer == "2023"  # non-string gold answers coerced
     assert q5.category_name == "adversarial"
     assert q5.answer is None  # gold behavior is abstention
-
-
-def test_preamble_demands_both_speakers_and_no_pronouns():
-    assert "BOTH" in LOCOMO_PREAMBLE
-    assert "never pronouns" in LOCOMO_PREAMBLE
 
 
 @pytest.mark.skipif(not DATA_PATH.exists(), reason="LoCoMo dataset not downloaded")

@@ -5,9 +5,11 @@ Usage:
     python -m evals.locomo.run_locomo_eval                               # full
 
 The answerer is memora.agents.qa.ask() — the shipped QA path — and it only
-sees what Memora stored (honesty rule). Requires Neo4j up, OPENAI_API_KEY
-(embeddings), DEEPSEEK_API_KEY (judge). Extraction + answering default to the
-Claude subscription with Sonnet: verify ANTHROPIC_API_KEY is NOT set.
+sees what Memora stored (honesty rule). Requires a separate eval-only Neo4j
+(MEMORA_EVAL_NEO4J_URI / _USERNAME / _PASSWORD; it is wiped per conversation),
+OPENAI_API_KEY (embeddings and the default openai judge; DEEPSEEK_API_KEY for
+--judge deepseek). Extraction + answering default to the Claude subscription
+with Sonnet: verify ANTHROPIC_API_KEY is NOT set.
 """
 
 from __future__ import annotations
@@ -27,7 +29,7 @@ from memora.config import LLMConfig
 from memora.llm import get_backend
 from memora.prompts.diary_extraction_prompt import PROMPT_VERSIONS
 
-from evals.locomo.ingest import ingest_conversation
+from evals.locomo.ingest import ingest_conversation, use_eval_neo4j
 from evals.locomo.judge import configure_judge, judge_answer
 from evals.locomo.load_locomo import DATA_PATH, load_locomo
 
@@ -80,6 +82,22 @@ async def eval_question(q, llm_config: LLMConfig, top_k: int,
     return record
 
 
+def summarize(records: list) -> tuple[dict, int, int, int]:
+    """Per-category and overall counts; errored records are not scored."""
+    by_cat = defaultdict(lambda: {"n": 0, "correct": 0, "errors": 0})
+    for r in records:
+        c = by_cat[r["category"]]
+        if "error" in r:
+            c["errors"] += 1
+        else:
+            c["n"] += 1
+            c["correct"] += bool(r.get("correct"))
+    total_n = sum(c["n"] for c in by_cat.values())
+    total_correct = sum(c["correct"] for c in by_cat.values())
+    total_errors = sum(c["errors"] for c in by_cat.values())
+    return dict(by_cat), total_n, total_correct, total_errors
+
+
 async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=None,
@@ -90,7 +108,7 @@ async def main() -> None:
                         help="Only questions of this category name")
     parser.add_argument("--backend", default="claude-subscription")
     parser.add_argument("--model", default=DEFAULT_MODEL)
-    parser.add_argument("--prompt-version", default="v2",
+    parser.add_argument("--prompt-version", default="v3",
                         choices=list(PROMPT_VERSIONS))
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--qa-concurrency", type=int, default=4)
@@ -100,6 +118,7 @@ async def main() -> None:
                              "(Claude), so GPT or DeepSeek")
     args = parser.parse_args()
 
+    use_eval_neo4j()
     judge_id = configure_judge(args.judge)
     llm_config = LLMConfig(backend=args.backend, model=args.model)
     extractor_backend = get_backend(llm_config)
@@ -128,7 +147,8 @@ async def main() -> None:
         logger.info("=== %s (%s & %s) ===",
                     conv.conv_id, conv.speaker_a, conv.speaker_b)
         await ingest_conversation(
-            conv, extractor_backend, prompt_version=args.prompt_version
+            conv, extractor_backend, f"{args.backend}:{args.model}",
+            prompt_version=args.prompt_version,
         )
         questions = [
             q for q in conv.questions
@@ -142,19 +162,12 @@ async def main() -> None:
         for r in records:
             r["conv_id"] = conv.conv_id
         all_records.extend(records)
-        done = sum(1 for r in all_records if r.get("correct"))
-        logger.info("%s: %d/%d correct so far",
-                    conv.conv_id, done, len(all_records))
+        _, n, done, errors = summarize(all_records)
+        logger.info("%s: %d/%d correct so far (%d errors)",
+                    conv.conv_id, done, n, errors)
 
     # ---- report ----
-    by_cat = defaultdict(lambda: {"n": 0, "correct": 0, "errors": 0})
-    for r in all_records:
-        c = by_cat[r["category"]]
-        c["n"] += 1
-        c["correct"] += bool(r.get("correct"))
-        c["errors"] += "error" in r
-    total_n = len(all_records)
-    total_correct = sum(1 for r in all_records if r.get("correct"))
+    by_cat, total_n, total_correct, total_errors = summarize(all_records)
 
     ts = time.strftime("%Y%m%d-%H%M%S")
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -168,7 +181,8 @@ async def main() -> None:
         "",
         f"- prompt: `{args.prompt_version}` | backend: `{args.backend}`"
         f" | model: `{args.model}` | judge: `{judge_id}`",
-        f"- conversations: {len(conversations)} | questions: {total_n}"
+        f"- conversations: {len(conversations)} | scored: {total_n}"
+        f" | errors (not scored): {total_errors}"
         f" | git: `{manifest['git_rev']}`"
         f" | dataset: `{manifest['dataset_sha256']}`",
         "",
@@ -182,7 +196,8 @@ async def main() -> None:
         c = by_cat[cat]
         lines.append(
             f"| {cat} | {c['n']} | {c['correct']}"
-            f" | {c['correct'] / c['n']:.1%} | {c['errors']} |"
+            f" | {c['correct'] / c['n']:.1%} | {c['errors']} |" if c["n"] else
+            f"| {cat} | 0 | 0 | n/a | {c['errors']} |"
         )
     md_path = RESULTS_DIR / f"run-{ts}-{args.prompt_version}.md"
     md_path.write_text("\n".join(lines) + "\n")

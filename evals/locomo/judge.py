@@ -14,10 +14,9 @@ from openai import AsyncOpenAI
 
 JUDGE_BACKENDS = {
     # name: (env var for key, base_url, default model)
-    "openai": ("OPENAI_API_KEY", None,
-               os.getenv("EVAL_JUDGE_MODEL", "gpt-5.2")),
+    "openai": ("OPENAI_API_KEY", None, "gpt-5.2"),
     "deepseek": ("DEEPSEEK_API_KEY", "https://api.deepseek.com",
-                 os.getenv("EVAL_JUDGE_MODEL", "deepseek-chat")),
+                 "deepseek-chat"),
 }
 
 _judge = None  # (client, model, name)

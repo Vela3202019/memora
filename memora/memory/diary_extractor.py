@@ -76,7 +76,7 @@ def load_diary(file_path: str) -> Dict[str, Any]:
     }
 
 
-def build_prompt(preamble: str, prompt_version: str = "v2") -> str:
+def build_prompt(preamble: str, prompt_version: str = "v3") -> str:
     core = PROMPT_VERSIONS[prompt_version]
     return f"{preamble}\n\n{core}" if preamble else core
 
@@ -84,7 +84,7 @@ def build_prompt(preamble: str, prompt_version: str = "v2") -> str:
 async def extract_from_document(
     doc: SourceDocument,
     preamble: str = "",
-    prompt_version: str = "v2",
+    prompt_version: str = "v3",
     backend: Optional[LLMBackend] = None,
 ) -> Dict[str, Any]:
     """Extract memories from any SourceDocument via the configured backend."""
@@ -115,7 +115,7 @@ async def extract_from_diary(
     diary_id: str,
     diary_date: str,
     content: str,
-    prompt_version: str = "v2",
+    prompt_version: str = "v3",
     model: str = "gpt-5.2",
     backend: Optional[LLMBackend] = None,
 ) -> Dict[str, Any]:

@@ -19,11 +19,12 @@ Design principles:
     so results are reproducible and comparable across prompt versions.
 
 Usage (from repo root):
-    python -m evals.run_extraction_eval --prompt-version v2 --trials 3
+    python -m evals.run_extraction_eval --trials 3
     python -m evals.run_extraction_eval --case dream-boundary
     python -m evals.compare_runs evals/results/run-A.json evals/results/run-B.json
 
-Requires OPENAI_API_KEY (extractor) and DEEPSEEK_API_KEY (judge). No Neo4j needed.
+Requires OPENAI_API_KEY (extractor) and DEEPSEEK_API_KEY (judge), unless
+--judge claude-subscription is used. No Neo4j needed.
 """
 
 import argparse
@@ -32,6 +33,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import statistics
 import subprocess
 import time
@@ -52,6 +54,14 @@ RESULTS_DIR = EVALS_DIR / "results"
 
 JUDGE_MODEL = os.getenv("EVAL_JUDGE_MODEL", "deepseek-chat")
 JUDGE_BASE_URL = os.getenv("EVAL_JUDGE_BASE_URL", "https://api.deepseek.com")
+
+EXTRACTOR_DEFAULT_MODELS = {
+    "openai-compatible": "gpt-5.2",
+    "claude-subscription": "claude-sonnet-5",
+    "anthropic": "claude-sonnet-5",
+    "gemini": "gemini-2.5-flash",
+}
+CLAUDE_BACKENDS = {"claude-subscription", "anthropic"}
 
 EXPERIENCE_TYPES = {
     "friendship", "family", "romantic", "career", "education",
@@ -107,10 +117,13 @@ Return JSON only, no markdown fences:
 
 
 # ---------------------------------------------------------------------------
-# Judge (DeepSeek - a different model family from the extractor)
+# Judge — a DIFFERENT model family from the extractor, to avoid self-preference.
+# Default: DeepSeek (API key). Alternative: the local Claude subscription CLI
+# (`claude -p`), which judges GPT extractions cross-family at no API cost.
 # ---------------------------------------------------------------------------
 
 _judge_client = None
+_judge_backend = None  # set to a ClaudeCLIBackend when --judge claude-subscription
 
 
 def get_judge_client() -> AsyncOpenAI:
@@ -137,11 +150,14 @@ def build_judge_payload(case: dict, extracted: dict) -> str:
 
 
 async def judge_case(case: dict, extracted: dict) -> dict:
+    payload = build_judge_payload(case, extracted)
+    if _judge_backend is not None:
+        return await _judge_backend.complete_json(JUDGE_PROMPT, payload)
     response = await get_judge_client().chat.completions.create(
         model=JUDGE_MODEL,
         messages=[
             {"role": "system", "content": JUDGE_PROMPT},
-            {"role": "user", "content": build_judge_payload(case, extracted)},
+            {"role": "user", "content": payload},
         ],
         response_format={"type": "json_object"},
         temperature=0.0,
@@ -153,7 +169,11 @@ async def judge_case(case: dict, extracted: dict) -> dict:
 # Deterministic checks
 # ---------------------------------------------------------------------------
 
-def check_schema(extracted: dict) -> list:
+PRONOUN_SUBJECTS = {"i", "me", "she", "he", "they", "her", "him", "them", "it"}
+PREDICATE_RE = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+def check_schema(extracted: dict, prompt_version: str = "v2") -> list:
     """Deterministic structural checks. Returns list of violation strings."""
     violations = []
     experiences = extracted.get("experiences", [])
@@ -182,9 +202,25 @@ def check_schema(extracted: dict) -> list:
             violations.append(f"truth[{i}] missing content")
         if t.get("type") not in TRUTH_TYPES:
             violations.append(f"truth[{i}] invalid type: {t.get('type')!r}")
-        confidence = t.get("confidence")
-        if not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0:
-            violations.append(f"truth[{i}] confidence out of range: {confidence!r}")
+        if prompt_version in ("v1", "v2"):
+            # v1/v2 schema includes confidence; dropped from v3 onward —
+            # everything stored is asserted, not scored.
+            confidence = t.get("confidence")
+            if not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0:
+                violations.append(f"truth[{i}] confidence out of range: {confidence!r}")
+        elif "confidence" in t:
+            violations.append(f"truth[{i}] has confidence (removed in v3+)")
+
+    for i, f in enumerate(extracted.get("facts", []) or []):
+        subject = (f.get("subject") or "").strip()
+        if not subject:
+            violations.append(f"fact[{i}] missing subject")
+        elif subject.lower() in PRONOUN_SUBJECTS:
+            violations.append(f"fact[{i}] pronoun subject: {subject!r}")
+        if not PREDICATE_RE.match(f.get("predicate") or ""):
+            violations.append(f"fact[{i}] predicate not snake_case: {f.get('predicate')!r}")
+        if not f.get("statement"):
+            violations.append(f"fact[{i}] missing statement")
 
     rels = extracted.get("relationships", {}) or {}
     for j, rel in enumerate(rels.get("experience_evoked_emotion", []) or []):
@@ -275,7 +311,11 @@ def score_case(case: dict, extracted: dict, verdict: dict) -> dict:
             u for u in verdict.get("unmatched_extracted", {}).get(kind, [])
             if u.get("classification") == "hallucinated"
         ]
-        precision = (n_extracted - len(hallucinated)) / n_extracted if n_extracted else 1.0
+        if n_extracted:
+            precision = (n_extracted - len(hallucinated)) / n_extracted
+        else:
+            # Extracting nothing is only correct when nothing was required.
+            precision = 0.0 if required else 1.0
         recall = min(matched, len(required)) / len(required) if required else 1.0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
         scores[kind] = {
@@ -322,7 +362,15 @@ async def run_case(case: dict, prompt_version: str, model: str, backend=None) ->
         backend=backend,
     )
     extraction_ms = int((time.monotonic() - start) * 1000)
-    schema_violations = check_schema(extracted)
+    if extracted.get("error"):
+        # The extractor never produced an answer, so there is nothing to grade.
+        return {
+            "id": case["id"],
+            "extraction_ms": extraction_ms,
+            "harness_error": extracted["error"],
+            "extracted": extracted,
+        }
+    schema_violations = check_schema(extracted, prompt_version)
     verdict = await judge_case(case, extracted)
     scores = score_case(case, extracted, verdict)
     return {
@@ -353,11 +401,17 @@ def aggregate(trials: list) -> dict:
             per_case.setdefault(r["id"], []).append(r)
 
     case_stats = {}
-    for case_id, runs in per_case.items():
+    for case_id, attempts in per_case.items():
+        runs = [r for r in attempts if "harness_error" not in r]
+        harness_errors = len(attempts) - len(runs)
+        if not runs:
+            case_stats[case_id] = {"trials": 0, "harness_errors": harness_errors}
+            continue
         f1s = [r["summary"]["mean_f1"] for r in runs]
         halls = [r["summary"]["hallucinations"] for r in runs]
         case_stats[case_id] = {
             "trials": len(runs),
+            "harness_errors": harness_errors,
             "mean_f1": round(statistics.mean(f1s), 3),
             "std_f1": round(statistics.stdev(f1s), 3) if len(f1s) > 1 else 0.0,
             "mean_hallucinations": round(statistics.mean(halls), 2),
@@ -373,20 +427,27 @@ def aggregate(trials: list) -> dict:
             ),
         }
 
-    all_f1 = [r["summary"]["mean_f1"] for t in trials for r in t]
-    all_hall = [r["summary"]["hallucinations"] for t in trials for r in t]
+    scored = [r for t in trials for r in t if "harness_error" not in r]
+    harness_errors = sum(len(t) for t in trials) - len(scored)
+    if not scored:
+        return {
+            "cases": case_stats,
+            "overall": {"scored_runs": 0, "harness_errors": harness_errors},
+        }
+    all_f1 = [r["summary"]["mean_f1"] for r in scored]
+    all_hall = [r["summary"]["hallucinations"] for r in scored]
     return {
         "cases": case_stats,
         "overall": {
+            "scored_runs": len(scored),
+            "harness_errors": harness_errors,
             "mean_f1": round(statistics.mean(all_f1), 3),
             "std_f1": round(statistics.stdev(all_f1), 3) if len(all_f1) > 1 else 0.0,
             "total_hallucinations": sum(all_hall),
             "hallucinations_per_trial": round(sum(all_hall) / len(trials), 2),
-            "total_schema_violations": sum(
-                len(r["schema_violations"]) for t in trials for r in t
-            ),
+            "total_schema_violations": sum(len(r["schema_violations"]) for r in scored),
             "total_atomicity_violations": sum(
-                len(r["scores"]["atomicity_violations"]) for t in trials for r in t
+                len(r["scores"]["atomicity_violations"]) for r in scored
             ),
         },
     }
@@ -411,7 +472,11 @@ def build_manifest(args, dataset_raw: str, n_cases: int) -> dict:
         "backend": args.backend,
         "prompt_version": args.prompt_version,
         "prompt_sha256": hashlib.sha256(prompt_text.encode()).hexdigest()[:12],
-        "judge": f"deepseek:{JUDGE_MODEL}",
+        "judge": (f"claude-subscription:{args.judge_model}"
+                  if args.judge == "claude-subscription"
+                  else f"deepseek:{JUDGE_MODEL}"),
+        "judge_same_family": (args.judge == "claude-subscription"
+                              and args.backend in CLAUDE_BACKENDS),
         "extraction_temperature": 0.1,
         "judge_temperature": 0.0,
     }
@@ -427,10 +492,21 @@ def render_report(manifest: dict, agg: dict) -> str:
         f"{manifest['n_cases']} cases · dataset `{manifest['dataset_sha256']}` · "
         f"rev `{manifest['git_rev']}`",
         "",
+    ]
+    if manifest.get("judge_same_family"):
+        lines += [
+            "Judge and extractor are the same model family (different models); "
+            "do not compare these scores with cross-family runs.",
+            "",
+        ]
+    lines += [
         "| case | F1 (mean±std) | halluc./trial | schema | atomicity | edge recall |",
         "|---|---|---|---|---|---|",
     ]
     for case_id, s in agg["cases"].items():
+        if not s["trials"]:
+            lines.append(f"| {case_id} | not scored | — | — | — | — |")
+            continue
         edge = s["edge_recall"] if s["edge_recall"] is not None else "—"
         lines.append(
             f"| {case_id} | {s['mean_f1']:.3f}±{s['std_f1']:.3f} "
@@ -438,30 +514,87 @@ def render_report(manifest: dict, agg: dict) -> str:
             f"| {s['atomicity_violations']} | {edge} |"
         )
     o = agg["overall"]
-    lines += [
-        "",
-        f"**Overall:** F1 {o['mean_f1']:.3f}±{o['std_f1']:.3f} · "
-        f"{o['hallucinations_per_trial']} hallucinations/trial · "
-        f"{o['total_schema_violations']} schema violations · "
-        f"{o['total_atomicity_violations']} atomicity violations",
-        "",
-    ]
+    lines.append("")
+    if o["scored_runs"]:
+        lines.append(
+            f"**Overall:** F1 {o['mean_f1']:.3f}±{o['std_f1']:.3f} · "
+            f"{o['hallucinations_per_trial']} hallucinations/trial · "
+            f"{o['total_schema_violations']} schema violations · "
+            f"{o['total_atomicity_violations']} atomicity violations"
+        )
+    else:
+        lines.append("**Overall:** No case was scored.")
+    if o["harness_errors"]:
+        total = o["scored_runs"] + o["harness_errors"]
+        lines += [
+            "",
+            f"**Harness errors:** {o['harness_errors']} of {total} case runs failed to run "
+            "and are excluded from the scores above.",
+        ]
+    lines.append("")
     return "\n".join(lines)
+
+
+def resolve_extractor_model(backend: str, model) -> str:
+    return model or EXTRACTOR_DEFAULT_MODELS[backend]
+
+
+def resolve_judge_model(backend: str, extractor_model: str, judge: str, judge_model):
+    """Model for the claude-subscription judge; None for the DeepSeek judge.
+
+    Claude may grade a Claude extractor only with a different model.
+    """
+    if judge != "claude-subscription":
+        return None
+    same_family = backend in CLAUDE_BACKENDS
+    if not judge_model:
+        judge_model = (
+            "claude-opus-5-5"
+            if same_family and extractor_model == "claude-sonnet-5"
+            else "claude-sonnet-5"
+        )
+    if same_family and judge_model == extractor_model:
+        raise SystemExit(
+            f"Extractor and judge are both {extractor_model}; "
+            "pass a different --judge-model."
+        )
+    return judge_model
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description="Run memora extraction eval")
     parser.add_argument("--case", help="Run a single case by id")
     parser.add_argument("--trials", type=int, default=1)
-    parser.add_argument("--prompt-version", default="v2", choices=sorted(PROMPT_VERSIONS))
-    parser.add_argument("--model", default="gpt-5.2", help="Extractor model")
+    parser.add_argument("--prompt-version", default="v3", choices=sorted(PROMPT_VERSIONS))
+    parser.add_argument(
+        "--model",
+        help="Extractor model (default depends on --backend: gpt-5.2 for "
+             "openai-compatible, claude-sonnet-5 for claude-subscription)",
+    )
     parser.add_argument(
         "--backend",
         choices=["openai-compatible", "claude-subscription", "anthropic", "gemini"],
         default="openai-compatible",
         help="LLM backend for the extractor (default preserves current behavior)",
     )
+    parser.add_argument(
+        "--judge",
+        choices=["deepseek", "claude-subscription"],
+        default="deepseek",
+        help="Judge backend. 'deepseek' (default) needs DEEPSEEK_API_KEY; "
+             "'claude-subscription' judges via `claude -p` at no API cost.",
+    )
+    parser.add_argument(
+        "--judge-model",
+        help="Model for the claude-subscription judge. Must differ from a Claude "
+             "extractor's model (default: claude-opus-5-5 against a "
+             "claude-sonnet-5 extractor, otherwise claude-sonnet-5).",
+    )
     args = parser.parse_args()
+    args.model = resolve_extractor_model(args.backend, args.model)
+    args.judge_model = resolve_judge_model(
+        args.backend, args.model, args.judge, args.judge_model
+    )
 
     dataset_raw = (EVALS_DIR / "dataset.json").read_text()
     cases = json.loads(dataset_raw)["cases"]
@@ -470,7 +603,12 @@ async def main() -> None:
         if not cases:
             raise SystemExit(f"No case with id {args.case!r}")
 
-    get_judge_client()  # fail fast if DEEPSEEK_API_KEY is missing
+    if args.judge == "claude-subscription":
+        from memora.llm.claude_cli import ClaudeCLIBackend
+        global _judge_backend
+        _judge_backend = ClaudeCLIBackend(model=args.judge_model)
+    else:
+        get_judge_client()  # fail fast if DEEPSEEK_API_KEY is missing
     backend = get_backend(LLMConfig(backend=args.backend, model=args.model))
     manifest = build_manifest(args, dataset_raw, len(cases))
     logger.info("Manifest: %s", json.dumps(manifest))

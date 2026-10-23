@@ -3,8 +3,8 @@
 Automated evaluation of the diary → memory extraction pipeline. No Neo4j required.
 
 ```bash
-# full suite, 3 trials, current prompt
-python -m evals.run_extraction_eval --prompt-version v2 --trials 3
+# full suite, 3 trials, current prompt (v3)
+python -m evals.run_extraction_eval --trials 3
 
 # single case, older prompt version
 python -m evals.run_extraction_eval --case dream-boundary --prompt-version v1
@@ -13,7 +13,9 @@ python -m evals.run_extraction_eval --case dream-boundary --prompt-version v1
 python -m evals.compare_runs evals/results/run-A-v1.json evals/results/run-B-v2.json
 ```
 
-Requires `OPENAI_API_KEY` (extractor) and `DEEPSEEK_API_KEY` (judge).
+Requires `OPENAI_API_KEY` (extractor) and `DEEPSEEK_API_KEY` (judge). Alternatively,
+`--judge claude-subscription` judges via `claude -p` at no API cost (`--judge-model` must
+differ from a Claude extractor's model); see `--help` for extractor backends.
 Results land in `evals/results/` as JSON (full per-trial detail) + Markdown (report).
 
 ## Design principles
@@ -76,6 +78,8 @@ mapped through the judge's item alignment and checked against extracted edges in
 - `v2` — v1 + six explicit exclusion rules (not-the-user's, not-yet-real, not-stated,
   not-claimed, dreams-stay-dreams, negation-is-not-occurrence). Additive only, so
   v1→v2 deltas isolate the effect of negative instructions.
+- `v3` (default) — v2 minus truth `confidence`, plus a facts layer (subject–predicate–object
+  triples). Facts get deterministic schema checks but are not judge-scored.
 
 ## Results: prompt v1 → v2 (July 2026)
 

@@ -60,7 +60,7 @@ TOOLS = [
         "name": "search_truths",
         "description": (
             "Semantically search the user's personal truths (self-knowledge) — abstracted beliefs, patterns, values, "
-            "preferences, and goals distilled from their experiences. Returns matching truths with confidence scores "
+            "preferences, and goals distilled from their experiences. Returns matching truths "
             "and the source experiences they were derived from."
         ),
         "inputSchema": {

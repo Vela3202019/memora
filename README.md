@@ -15,6 +15,12 @@ hallucinations −78%** (23 → 5 per trial). The eval's regression guards also 
 cost: v2 mildly over-suppresses own-past recollections — the next iteration target.
 See [`evals/results/compare-v1-vs-v2.md`](evals/results/compare-v1-vs-v2.md).
 
+The default prompt is now **v3**: v2 without truth confidence, plus [facts](#nodes).
+On one setup (Claude Sonnet 5 extracting, Claude Opus 5.5 judging, 3 trials × 14 cases),
+v2 → v3 mean F1 went 0.921 → 0.934. See
+[`evals/results/run-20261022-110207-v2.md`](evals/results/run-20261022-110207-v2.md) and
+[`evals/results/run-20261022-110540-v3.md`](evals/results/run-20261022-110540-v3.md).
+
 ## The three memory types
 
 Memora models memory the way human memory actually stratifies — and keeps the layers as distinct node types so you can query each on its own terms.
@@ -154,7 +160,13 @@ docs/MEMORY_SCHEMA.md    # full Neo4j schema
 - **User** — `{userId}`
 - **Experience** — `{description, type, date, location, significance}`
 - **Emotion** — `{name, valence}`
-- **Truth** — `{content, type, confidence, first_synthesized}`
+- **Truth** — `{content, type, first_synthesized}`
+- **Fact** — `{subject, predicate, object, statement, stated_by, valid_from, valid_to}`.
+  A persisting attribute or relationship as a subject–predicate–object triple.
+  `valid_from` is the source document's date; `valid_to` is null while the fact is current.
+  For single-valued predicates (`lives_in`, `works_at`, `works_as`, `is_named`,
+  `has_partner`) a new value closes the user's previous current fact instead of
+  deleting it. Other predicates (e.g. `likes`, `has_friend`) accumulate.
 
 ### Relationships
 - `(User)-[:HAD]->(Experience)`
@@ -162,6 +174,9 @@ docs/MEMORY_SCHEMA.md    # full Neo4j schema
 - `(User)-[:GOT]->(Truth)`
 - `(Experience)-[:EVOKED]->(Emotion)`
 - `(Truth)-[:DISTILLED_FROM]->(Experience)`
+- `(User)-[:KNOWS]->(Fact)`
+- `(Fact)-[:LEARNED_IN]->(Experience)`
+- `(Fact)-[:SUPERSEDES]->(Fact)` — new value → the value it replaced (whose `valid_to` is set)
 
 ### Query examples
 
@@ -176,7 +191,12 @@ RETURN em.name, f.intensity, f.context, em.valence
 
 -- Truths / self-knowledge
 MATCH (u:User {userId: "me"})-[:GOT]->(t:Truth)
-RETURN t.content, t.type, t.confidence
+RETURN t.content, t.type
+
+-- Facts that are true now
+MATCH (u:User {userId: "me"})-[:KNOWS]->(f:Fact)
+WHERE f.valid_to IS NULL
+RETURN f.subject, f.predicate, f.object, f.valid_from
 ```
 
 ## Reference

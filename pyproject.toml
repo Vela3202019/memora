@@ -28,3 +28,6 @@ include = ["memora*"]
 
 [tool.setuptools.package-data]
 "memora.resources" = ["docker-compose.yml"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

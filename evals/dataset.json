@@ -56,7 +56,13 @@
         "experiences": [
           {"description": "Spent a quiet Sunday journaling at home", "type": "personal_growth", "people_involved": []}
         ],
-        "emotions": [],
+        "emotions": [
+          {
+            "name": "fear",
+            "valence": "negative",
+            "optional": true
+          }
+        ],
         "truths": [
           {"content": "I always overcommit when I'm afraid of disappointing people", "type": "pattern"},
           {"content": "I believe rest is a form of discipline, not laziness", "type": "belief"},

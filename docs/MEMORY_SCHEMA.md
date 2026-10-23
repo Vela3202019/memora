@@ -86,7 +86,6 @@ Represents personal semantic memory - abstracted self-knowledge distilled from e
 **Properties:**
 - `content` (string, required): The truth statement (e.g., "I thrive in solitary exploration at night")
 - `type` (string, required): Type of truth - "pattern", "value", "principle", "need", or "preference"
-- `confidence` (float, required): Confidence level (0.0-1.0)
 - `first_synthesized` (date, required): When this truth was first synthesized
 - `createdAt` (datetime, required): When the truth node was created
 
@@ -95,8 +94,35 @@ Represents personal semantic memory - abstracted self-knowledge distilled from e
 (t:Truth {
   content: "I thrive in solitary exploration at night",
   type: "pattern",
-  confidence: 0.85,
   first_synthesized: date("2025-12-01")
+})
+```
+
+#### Fact
+A persisting attribute or relationship stored as a subject–predicate–object triple.
+
+**Properties:**
+- `subject` (string, required): Who or what the fact is about (e.g., "user")
+- `predicate` (string, required): The relation (e.g., "lives_in", "has_friend")
+- `object` (string, required): The value (e.g., "Seattle")
+- `statement` (string, required): The fact as a sentence
+- `stated_by` (string, optional): Who stated it
+- `valid_from` (date, required): The source document's date (never LLM-inferred)
+- `valid_to` (date, optional): Null while the fact is current; set when it is superseded
+- `createdAt` (datetime, required): When the fact node was created
+
+For single-valued predicates (`lives_in`, `works_at`, `works_as`, `is_named`, `has_partner`) a new value closes the user's previous current fact instead of deleting it. Other predicates (e.g. `likes`, `has_friend`) accumulate. Facts are never deleted.
+
+**Example:**
+```cypher
+(f:Fact {
+  subject: "user",
+  predicate: "lives_in",
+  object: "Seattle",
+  statement: "I live in Seattle",
+  stated_by: "user",
+  valid_from: date("2026-06-01"),
+  valid_to: null
 })
 ```
 
@@ -152,14 +178,36 @@ Indicates that a user discovered/learned a truth about themselves.
 
 **Properties:**
 - `discovered_at` (date, required): When the truth was discovered
-- `confidence` (float, required): Confidence level at discovery time
 
 **Example:**
 ```cypher
 (u:User)-[:GOT {
-  discovered_at: date("2025-12-01"),
-  confidence: 0.85
+  discovered_at: date("2025-12-01")
 }]->(t:Truth)
+```
+
+#### User -[:KNOWS]-> Fact
+Indicates that a user knows a fact.
+
+**Example:**
+```cypher
+(u:User)-[:KNOWS]->(f:Fact)
+```
+
+#### Fact -[:LEARNED_IN]-> Experience
+Indicates the experience a fact was learned in.
+
+**Example:**
+```cypher
+(f:Fact)-[:LEARNED_IN]->(exp:Experience)
+```
+
+#### Fact -[:SUPERSEDES]-> Fact
+Points from a new value of a single-valued fact to the value it replaced. The replaced fact's `valid_to` is set to the new fact's `valid_from`.
+
+**Example:**
+```cypher
+(new:Fact {object: "Seattle"})-[:SUPERSEDES]->(old:Fact {object: "Boston", valid_to: date("2026-06-01")})
 ```
 
 #### Truth -[:DISTILLED_FROM]-> Experience

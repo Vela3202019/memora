@@ -4,126 +4,154 @@ import itertools
 import pytest
 
 import memora.memory.storage as storage_module
-from memora.memory.storage import MemoryStorage
+from memora.memory.storage import MemoryStorage, dedupe_facts
 
 
-class FakeResult:
-    def __init__(self, record):
-        self._record = record
+class InMemoryGraphStorage(MemoryStorage):
+    """MemoryStorage whose graph writes/reads go to in-memory dicts."""
 
-    async def single(self):
-        return self._record
-
-
-class FakeSession:
-    def __init__(self, client):
-        self.client = client
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *exc):
-        return False
-
-    async def run(self, query, **params):
-        self.client.calls.append((query, params))
-        if "RETURN elementId(f) as fact_id" in query:
-            return FakeResult({"fact_id": f"fact-{next(self.client.ids)}"})
-        if "RETURN elementId(exp) as exp_id" in query:
-            return FakeResult({"exp_id": f"exp-{next(self.client.ids)}"})
-        if "RETURN elementId(t) as truth_id" in query:
-            return FakeResult({"truth_id": f"truth-{next(self.client.ids)}"})
-        return FakeResult(None)
-
-
-class FakeClient:
     def __init__(self):
-        self.calls = []
+        super().__init__()
         self.ids = itertools.count()
+        self.facts = {}        # id -> fact properties (incl. userId)
+        self.supersedes = []   # (new_id, old_id)
+        self.learned_in = []   # (fact_id, experience_id)
 
-    async def get_async_session(self):
-        return FakeSession(self)
+    async def store_user(self, user_id, properties=None):
+        pass
 
-    def queries_with(self, fragment):
-        return [(q, p) for q, p in self.calls if fragment in q]
+    async def store_experience(self, user_id, description, timestamp, **kwargs):
+        return f"exp-{next(self.ids)}"
+
+    async def _create_fact(self, user_id, subject, predicate, object, statement,
+                           stated_by, valid_from, embedding):
+        fact_id = f"fact-{next(self.ids)}"
+        self.facts[fact_id] = {
+            "userId": user_id, "subject": subject, "predicate": predicate,
+            "object": object, "valid_from": valid_from, "valid_to": None,
+        }
+        return fact_id
+
+    async def _current_facts(self, user_id):
+        return [
+            {"id": i, **{k: f[k] for k in ("subject", "predicate", "object", "valid_from")}}
+            for i, f in self.facts.items()
+            if f["userId"] == user_id and f["valid_to"] is None
+        ]
+
+    async def _close_fact(self, fact_id, valid_to, superseded_by):
+        self.facts[fact_id]["valid_to"] = valid_to
+        self.supersedes.append((superseded_by, fact_id))
+
+    async def _link_fact_to_experience(self, fact_id, experience_id):
+        self.learned_in.append((fact_id, experience_id))
+
+    def current(self, predicate):
+        return {i: f for i, f in self.facts.items()
+                if f["predicate"] == predicate and f["valid_to"] is None}
 
 
 @pytest.fixture
-def client(monkeypatch):
-    fake = FakeClient()
-
+def graph(monkeypatch):
     async def fake_embed(text):
         return [0.0]
 
-    monkeypatch.setattr(storage_module, "get_neo4j_client", lambda: fake)
+    monkeypatch.setattr(storage_module, "get_neo4j_client", lambda: None)
     monkeypatch.setattr(storage_module, "embed", fake_embed)
-    return fake
+    return InMemoryGraphStorage()
 
 
-def store(storage, predicate, obj, valid_from):
-    return asyncio.run(storage.store_fact(
-        user_id="u1", subject="user", predicate=predicate, object=obj,
+def store(graph, predicate, obj, valid_from, user_id="u1"):
+    return asyncio.run(graph.store_fact(
+        user_id=user_id, subject="user", predicate=predicate, object=obj,
         statement=f"I {predicate} {obj}", stated_by="user", valid_from=valid_from,
     ))
 
 
-def test_single_valued_fact_closes_previous_one(client):
-    storage = MemoryStorage()
-    old_id = store(storage, "lives_in", "Boston", "2026-01-01")
-    new_id = store(storage, "lives_in", "Seattle", "2026-06-01")
-
-    supersedes = client.queries_with("SUPERSEDES")
-    assert len(supersedes) == 2  # one attempt per single-valued store
-    query, params = supersedes[1]
-    # The old current fact gets closed at the new fact's valid_from and linked
-    assert "SET old.valid_to = date($valid_from)" in query
-    assert "CREATE (new)-[:SUPERSEDES]->(old)" in query
-    assert "old.valid_to IS NULL" in query
-    assert "old.object <> $object" in query
-    # Only this user's facts are candidates
-    assert "(:User {userId: $userId})-[:KNOWS]->(old:Fact" in query
-    assert params == {
-        "fact_id": new_id, "userId": "u1", "subject": "user",
-        "predicate": "lives_in", "object": "Seattle", "valid_from": "2026-06-01",
-    }
-    assert new_id != old_id
-    # The old fact is kept: nothing is ever deleted
-    assert not any("DELETE" in q for q, _ in client.calls)
+def ingest_entry(graph, facts, date, links=()):
+    asyncio.run(graph.store_extracted_data("u1", {
+        "experiences": [{"description": f"entry {date}"}],
+        "emotions": [], "truths": [], "facts": facts,
+        "relationships": {"fact_learned_in_experience": list(links)},
+        "message_metadata": {"timestamp": f"{date}T09:00:00"},
+    }))
 
 
-def test_new_fact_is_current_and_known_by_user(client):
-    storage = MemoryStorage()
-    store(storage, "lives_in", "Boston", "2026-01-01")
-
-    query, params = client.queries_with("CREATE (f:Fact")[0]
-    assert "valid_to: null" in query
-    assert "CREATE (u)-[:KNOWS]->(f)" in query
-    assert params["valid_from"] == "2026-01-01"
+def lives_in(city):
+    return {"subject": "user", "predicate": "lives_in", "object": city,
+            "statement": f"I live in {city}", "stated_by": "user"}
 
 
-def test_multi_valued_fact_does_not_supersede(client):
-    storage = MemoryStorage()
-    store(storage, "likes", "jazz", "2026-01-01")
-    store(storage, "likes", "hiking", "2026-06-01")
+def test_single_valued_fact_closes_previous_one(graph):
+    boston = store(graph, "lives_in", "Boston", "2026-01-01")
+    seattle = store(graph, "lives_in", "Seattle", "2026-06-01")
 
-    assert len(client.queries_with("CREATE (f:Fact")) == 2
-    assert client.queries_with("SUPERSEDES") == []
+    assert list(graph.current("lives_in")) == [seattle]
+    assert graph.facts[boston]["valid_to"] == "2026-06-01"
+    assert graph.supersedes == [(seattle, boston)]
+    assert len(graph.facts) == 2  # nothing deleted
 
 
-def test_store_extracted_data_routes_facts_with_experience_links(client):
-    storage = MemoryStorage()
-    extracted = {
+def test_new_fact_is_current_with_document_date(graph):
+    fact_id = store(graph, "lives_in", "Boston", "2026-01-01")
+
+    assert graph.facts[fact_id]["valid_from"] == "2026-01-01"
+    assert graph.facts[fact_id]["valid_to"] is None
+    assert graph.facts[fact_id]["userId"] == "u1"
+
+
+def test_multi_valued_fact_does_not_supersede(graph):
+    store(graph, "likes", "jazz", "2026-01-01")
+    store(graph, "likes", "hiking", "2026-06-01")
+
+    assert len(graph.current("likes")) == 2
+    assert graph.supersedes == []
+
+
+def test_other_users_facts_are_not_superseded(graph):
+    other = store(graph, "lives_in", "Boston", "2026-01-01", user_id="u2")
+    store(graph, "lives_in", "Seattle", "2026-06-01")
+
+    assert graph.facts[other]["valid_to"] is None
+    assert graph.supersedes == []
+
+
+def test_older_fact_ingested_late_does_not_close_newer_one(graph):
+    seattle = store(graph, "lives_in", "Seattle", "2026-06-01")
+    boston = store(graph, "lives_in", "Boston", "2026-01-01")
+
+    assert list(graph.current("lives_in")) == [seattle]
+    assert graph.facts[boston]["valid_to"] == "2026-06-01"
+    assert graph.supersedes == [(seattle, boston)]
+    for fact in graph.facts.values():
+        assert fact["valid_to"] is None or fact["valid_to"] >= fact["valid_from"]
+
+
+def test_restated_fact_keeps_one_current_fact_with_earliest_date(graph):
+    ingest_entry(graph, [lives_in("Seattle")], "2026-01-10")
+    ingest_entry(graph, [lives_in("Seattle")], "2026-03-10")
+
+    current = list(graph.current("lives_in").values())
+    assert [(f["object"], f["valid_from"]) for f in current] == [("Seattle", "2026-01-10")]
+
+    ingest_entry(graph, [lives_in("Boston")], "2026-05-10")
+
+    assert len(graph.supersedes) == 1
+    current = list(graph.current("lives_in").values())
+    assert [(f["object"], f["valid_from"]) for f in current] == [("Boston", "2026-05-10")]
+
+
+def test_store_extracted_data_links_facts_to_experiences(graph):
+    asyncio.run(graph.store_extracted_data("u1", {
         "experiences": [
             {"description": "I met Ken for lunch", "type": "friendship"},
             {"description": "I moved into my new flat", "type": "personal_growth"},
         ],
-        "emotions": [],
-        "truths": [],
+        "emotions": [], "truths": [],
         "facts": [
             {"subject": "user", "predicate": "has_friend", "object": "Ken",
              "statement": "I have a friend named Ken", "stated_by": "user"},
-            {"subject": "user", "predicate": "lives_in", "object": "Seattle",
-             "statement": "I live in Seattle", "stated_by": "user"},
+            lives_in("Seattle"),
         ],
         "relationships": {
             "fact_learned_in_experience": [
@@ -133,31 +161,39 @@ def test_store_extracted_data_routes_facts_with_experience_links(client):
             ],
         },
         "message_metadata": {"timestamp": "2026-07-05T09:30:00"},
-    }
-    asyncio.run(storage.store_extracted_data("u1", extracted, call_id="doc-1"))
+    }, call_id="doc-1"))
 
-    exp_ids = [f"exp-{i}" for i in range(2)]
-    fact_ids = ["fact-2", "fact-3"]
-
-    created = client.queries_with("CREATE (f:Fact")
-    assert [p["object"] for _, p in created] == ["Ken", "Seattle"]
-    # valid_from is the document's date
-    assert all(p["valid_from"] == "2026-07-05" for _, p in created)
-
-    links = [(p["fact_id"], p["experience_id"])
-             for _, p in client.queries_with("MERGE (f)-[:LEARNED_IN]->(exp)")]
-    assert links == [(fact_ids[0], exp_ids[0]), (fact_ids[1], exp_ids[1])]
+    by_object = {f["object"]: i for i, f in graph.facts.items()}
+    assert all(f["valid_from"] == "2026-07-05" for f in graph.facts.values())
+    assert graph.learned_in == [(by_object["Ken"], "exp-0"), (by_object["Seattle"], "exp-1")]
 
 
-def test_store_extracted_data_without_facts(client):
-    storage = MemoryStorage()
-    extracted = {
-        "experiences": [], "emotions": [],
-        "truths": [{"content": "I love mornings", "type": "preference"}],
-        "relationships": {},
-        "message_metadata": {"timestamp": "2026-07-05T09:30:00"},
-    }
-    asyncio.run(storage.store_extracted_data("u1", extracted))
+def test_dedupe_collapses_repeats_and_remaps_links():
+    ken = {"subject": "user", "predicate": "has_friend", "object": "Ken"}
+    seattle = {"subject": "user", "predicate": "lives_in", "object": "Seattle"}
+    facts, links = dedupe_facts(
+        [ken, seattle, dict(ken)],
+        [{"fact_index": 0, "experience_index": 0},
+         {"fact_index": 1, "experience_index": 1},
+         {"fact_index": 2, "experience_index": 2}],
+        current=set(),
+    )
 
-    assert client.queries_with("CREATE (f:Fact") == []
-    assert len(client.queries_with("CREATE (t:Truth")) == 1
+    assert facts == [ken, seattle]
+    assert links == [{"fact_index": 0, "experience_index": 0},
+                     {"fact_index": 1, "experience_index": 1},
+                     {"fact_index": 0, "experience_index": 2}]
+
+
+def test_dedupe_drops_facts_already_current():
+    ken = {"subject": "user", "predicate": "has_friend", "object": "Ken"}
+    seattle = {"subject": "user", "predicate": "lives_in", "object": "Seattle"}
+    facts, links = dedupe_facts(
+        [seattle, ken],
+        [{"fact_index": 0, "experience_index": 0},
+         {"fact_index": 1, "experience_index": 0}],
+        current={("user", "lives_in", "Seattle")},
+    )
+
+    assert facts == [ken]
+    assert links == [{"fact_index": 0, "experience_index": 0}]

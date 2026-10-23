@@ -60,7 +60,6 @@ async def search_truths(query: str, top_k: int = 5) -> list[dict[str, Any]]:
             RETURN
                 t.content              AS content,
                 t.type                 AS type,
-                t.confidence           AS confidence,
                 t.first_synthesized    AS first_synthesized,
                 collect({
                     description: exp.description,

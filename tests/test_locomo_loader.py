@@ -1,6 +1,9 @@
 import json
 
+import pytest
+
 from evals.locomo.load_locomo import (
+    DATA_PATH,
     LOCOMO_PREAMBLE,
     _parse_date_time,
     load_locomo,
@@ -76,6 +79,7 @@ def test_preamble_demands_both_speakers_and_no_pronouns():
     assert "never pronouns" in LOCOMO_PREAMBLE
 
 
+@pytest.mark.skipif(not DATA_PATH.exists(), reason="LoCoMo dataset not downloaded")
 def test_real_dataset_loads():
     convs = load_locomo()
     assert len(convs) == 10
